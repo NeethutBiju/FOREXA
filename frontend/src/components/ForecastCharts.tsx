@@ -30,7 +30,7 @@ export const RainfallOverTimeChart: React.FC<{
   if (!forecast.hasNativeStation || forecast.hourlySeries.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h3 className="text-base font-bold text-[#6D28D9]">
+        <h3 className="text-base font-bold text-[#14532D]">
           Rainfall Over Time · {forecast.district.name}
         </h3>
         <p className="text-sm text-slate-500 mt-1.5">
@@ -47,7 +47,7 @@ export const RainfallOverTimeChart: React.FC<{
   if (!hasAnyBlended) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h3 className="text-base font-bold text-[#6D28D9]">
+        <h3 className="text-base font-bold text-[#14532D]">
           Forecast Unavailable · All Model Sources Offline
         </h3>
         <p className="text-sm text-slate-500 mt-1.5">
@@ -147,7 +147,7 @@ export const RainfallOverTimeChart: React.FC<{
     <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <div>
-          <h3 className="text-base font-bold text-[#6D28D9]">
+          <h3 className="text-base font-bold text-[#14532D]">
             Rainfall Over Time (mm / 6h) · {forecast.district.name}
           </h3>
           <p className="text-xs text-slate-500 mt-1">
@@ -158,8 +158,8 @@ export const RainfallOverTimeChart: React.FC<{
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F5F3FF] text-[#6D28D9] border border-purple-200">
-            <span className="w-3 h-1 rounded-full bg-[#6D28D9] inline-block" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#ECFDF5] text-[#14532D] border border-emerald-200">
+            <span className="w-3 h-1 rounded-full bg-[#14532D] inline-block" />
             Blended Forecast
           </span>
 
@@ -187,7 +187,7 @@ export const RainfallOverTimeChart: React.FC<{
                     : "opacity-40 border-slate-200 text-slate-400"
                 }`}
               >
-                <span className="w-2.5 h-0.5 bg-[#8B5CF6] inline-block" />
+                <span className="w-2.5 h-0.5 bg-[#16A34A] inline-block" />
                 AI ({forecast.weights.ai}%)
               </button>
 
@@ -200,13 +200,13 @@ export const RainfallOverTimeChart: React.FC<{
                     : "opacity-40 border-slate-200 text-slate-400"
                 }`}
               >
-                <span className="w-2.5 h-0.5 bg-[#4C1D95] inline-block" />
+                <span className="w-2.5 h-0.5 bg-[#052E16] inline-block" />
                 Ensemble ({forecast.weights.ensemble}%)
               </button>
             </>
           )}
 
-          {hasObserved && (
+          {hasObserved && false && (
             <button
               type="button"
               onClick={() => setShowObserved(!showObserved)}
@@ -217,7 +217,7 @@ export const RainfallOverTimeChart: React.FC<{
               }`}
             >
               <span className="w-2.5 h-0.5 bg-slate-600 inline-block" />
-              Reference Observation
+              Observed
             </button>
           )}
         </div>
@@ -267,7 +267,7 @@ export const RainfallOverTimeChart: React.FC<{
                   y1={y}
                   x2={width - padR}
                   y2={y}
-                  stroke="#DDD6FE"
+                  stroke="#BBF7D0"
                   strokeWidth="1"
                   strokeDasharray="5 4"
                 />
@@ -277,7 +277,7 @@ export const RainfallOverTimeChart: React.FC<{
                   textAnchor="end"
                   fontSize="9.5"
                   fontWeight="600"
-                  fill="#7C3AED"
+                  fill="#15803D"
                 >
                   {th.label}
                 </text>
@@ -288,7 +288,7 @@ export const RainfallOverTimeChart: React.FC<{
           {hasUncertaintyBand && (
             <path
               d={uncertaintyBandPath}
-              fill="#8B5CF6"
+              fill="#16A34A"
               fillOpacity="0.12"
             />
           )}
@@ -306,7 +306,7 @@ export const RainfallOverTimeChart: React.FC<{
             <path
               d={aiPath}
               fill="none"
-              stroke="#8B5CF6"
+              stroke="#16A34A"
               strokeWidth="1.5"
               strokeDasharray="3 3"
             />
@@ -315,7 +315,7 @@ export const RainfallOverTimeChart: React.FC<{
             <path
               d={ensemblePath}
               fill="none"
-              stroke="#4C1D95"
+              stroke="#052E16"
               strokeWidth="1.5"
               strokeDasharray="6 3"
             />
@@ -333,7 +333,7 @@ export const RainfallOverTimeChart: React.FC<{
           <path
             d={blendedPath}
             fill="none"
-            stroke="#6D28D9"
+            stroke="#14532D"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -345,7 +345,7 @@ export const RainfallOverTimeChart: React.FC<{
               y1={padT}
               x2={getX(activeSliderIdx)}
               y2={height - padB}
-              stroke="#6D28D9"
+              stroke="#14532D"
               strokeWidth="1.8"
               strokeDasharray="3 3"
             />
@@ -355,7 +355,7 @@ export const RainfallOverTimeChart: React.FC<{
               width="72"
               height="18"
               rx="9"
-              fill="#6D28D9"
+              fill="#14532D"
             />
             <text
               x={getX(activeSliderIdx)}
@@ -374,7 +374,7 @@ export const RainfallOverTimeChart: React.FC<{
               cx={getX(peakIdx)}
               cy={getY(series[peakIdx].blended ?? 0)}
               r="5.5"
-              fill="#4C1D95"
+              fill="#052E16"
               stroke="#FFFFFF"
               strokeWidth="2"
             />
@@ -384,7 +384,7 @@ export const RainfallOverTimeChart: React.FC<{
               width="165"
               height="20"
               rx="6"
-              fill="#4C1D95"
+              fill="#052E16"
             />
             <text
               x={
@@ -426,8 +426,8 @@ export const RainfallOverTimeChart: React.FC<{
                   cx={cx}
                   cy={cy}
                   r={isActive || isHovered ? 5 : 3.5}
-                  fill={isActive ? "#6D28D9" : "#FFFFFF"}
-                  stroke="#6D28D9"
+                  fill={isActive ? "#14532D" : "#FFFFFF"}
+                  stroke="#14532D"
                   strokeWidth="2"
                 />
                 <text
@@ -436,7 +436,7 @@ export const RainfallOverTimeChart: React.FC<{
                   textAnchor="middle"
                   fontSize="10.5"
                   fontWeight={isActive ? "700" : "500"}
-                  fill={isActive ? "#6D28D9" : "#64748B"}
+                  fill={isActive ? "#14532D" : "#64748B"}
                 >
                   +{pt.h}h
                 </text>
@@ -448,7 +448,7 @@ export const RainfallOverTimeChart: React.FC<{
 
       <div className="mt-4 px-5 py-3 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-700">
         <div className="flex items-center gap-2.5">
-          <span className="font-bold text-[#6D28D9]">
+          <span className="font-bold text-[#14532D]">
             +{inspectedPt.h}h Readout:
           </span>
           <span className="font-bold text-slate-900">
@@ -478,7 +478,7 @@ export const RainfallOverTimeChart: React.FC<{
           )}
           {hasObserved && inspectedPt.observed !== null && (
             <span>
-              Observed: <strong className="text-[#6D28D9]">{inspectedPt.observed} mm</strong>
+              Observed: <strong className="text-[#14532D]">{inspectedPt.observed} mm</strong>
             </span>
           )}
           <span>
@@ -545,11 +545,11 @@ export const MiniDrawerRainfallChart: React.FC<{
       className="w-full h-auto"
       aria-label="6h-72h mini rainfall trajectory"
     >
-      <path d={areaD} fill="#6D28D9" fillOpacity="0.10" />
+      <path d={areaD} fill="#14532D" fillOpacity="0.10" />
       <path
         d={pathD}
         fill="none"
-        stroke="#6D28D9"
+        stroke="#14532D"
         strokeWidth="2.2"
         strokeLinecap="round"
       />
@@ -559,8 +559,8 @@ export const MiniDrawerRainfallChart: React.FC<{
             cx={getX(i)}
             cy={getY(pt.blended ?? 0)}
             r={pt.h === leadTime ? 4 : 2.5}
-            fill={pt.h === leadTime ? "#6D28D9" : "#FFFFFF"}
-            stroke="#6D28D9"
+            fill={pt.h === leadTime ? "#14532D" : "#FFFFFF"}
+            stroke="#14532D"
             strokeWidth="1.8"
           />
           {i % 2 === 1 && (
@@ -581,7 +581,7 @@ export const MiniDrawerRainfallChart: React.FC<{
         cx={getX(peakIdx)}
         cy={getY(series[peakIdx].blended ?? 0)}
         r="4"
-        fill="#4C1D95"
+        fill="#052E16"
         stroke="#FFFFFF"
         strokeWidth="1.5"
       />
@@ -591,7 +591,7 @@ export const MiniDrawerRainfallChart: React.FC<{
         textAnchor="middle"
         fontSize="8.5"
         fontWeight="700"
-        fill="#6D28D9"
+        fill="#14532D"
       >
         Peak {series[peakIdx].blended} mm (+{series[peakIdx].h}h)
       </text>
@@ -658,12 +658,12 @@ export const AnalogOverlayChart: React.FC<{
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs">
-        <span className="font-bold text-[#6D28D9]">
+        <span className="font-bold text-[#14532D]">
           Current Forecast vs {analog.monthYearLabel} Observation
         </span>
         <div className="flex items-center gap-4 text-[11px] font-medium text-slate-600">
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-1 bg-[#6D28D9] inline-block rounded" />
+            <span className="w-3 h-1 bg-[#14532D] inline-block rounded" />
             Current Forecast ({forecast.district.name})
           </span>
           <span className="inline-flex items-center gap-1.5">
@@ -718,7 +718,7 @@ export const AnalogOverlayChart: React.FC<{
           <path
             d={currentPath}
             fill="none"
-            stroke="#6D28D9"
+            stroke="#14532D"
             strokeWidth="2.6"
             strokeLinecap="round"
           />
@@ -795,11 +795,11 @@ export const WeightOverLeadTimeChart: React.FC<{
             NWP %
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-1 bg-[#8B5CF6] rounded inline-block" />
+            <span className="w-3 h-1 bg-[#16A34A] rounded inline-block" />
             AI %
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-1 bg-[#6D28D9] rounded inline-block" />
+            <span className="w-3 h-1 bg-[#14532D] rounded inline-block" />
             Ensemble %
           </span>
         </div>
@@ -841,7 +841,7 @@ export const WeightOverLeadTimeChart: React.FC<{
           y1={padT}
           x2={getX(activeIdx)}
           y2={height - padB}
-          stroke="#6D28D9"
+          stroke="#14532D"
           strokeWidth="1.6"
           strokeDasharray="3 3"
         />
@@ -856,14 +856,14 @@ export const WeightOverLeadTimeChart: React.FC<{
         <path
           d={makePath("ai")}
           fill="none"
-          stroke="#8B5CF6"
+          stroke="#16A34A"
           strokeWidth="2.4"
           strokeLinecap="round"
         />
         <path
           d={makePath("ensemble")}
           fill="none"
-          stroke="#6D28D9"
+          stroke="#14532D"
           strokeWidth="2.8"
           strokeLinecap="round"
         />
@@ -871,12 +871,12 @@ export const WeightOverLeadTimeChart: React.FC<{
         {weightsSeries.map((pt, i) => (
           <g key={pt.h}>
             <circle cx={getX(i)} cy={getY(pt.nwp)} r="3" fill="#94A3B8" />
-            <circle cx={getX(i)} cy={getY(pt.ai)} r="3" fill="#8B5CF6" />
+            <circle cx={getX(i)} cy={getY(pt.ai)} r="3" fill="#16A34A" />
             <circle
               cx={getX(i)}
               cy={getY(pt.ensemble)}
               r="3.5"
-              fill="#6D28D9"
+              fill="#14532D"
             />
             <text
               x={getX(i)}
@@ -884,7 +884,7 @@ export const WeightOverLeadTimeChart: React.FC<{
               textAnchor="middle"
               fontSize="10"
               fontWeight={pt.h === leadTime ? "700" : "500"}
-              fill={pt.h === leadTime ? "#6D28D9" : "#64748B"}
+              fill={pt.h === leadTime ? "#14532D" : "#64748B"}
             >
               +{pt.h}h
             </text>

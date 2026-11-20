@@ -22,6 +22,7 @@ export default defineConfig({
       "/simulate": { target: BACKEND_TARGET, changeOrigin: true },
       "/ingest": { target: BACKEND_TARGET, changeOrigin: true },
       "/auth": { target: BACKEND_TARGET, changeOrigin: true },
+      "/district-dispatch": { target: BACKEND_TARGET, changeOrigin: true },
       "/health": { target: BACKEND_TARGET, changeOrigin: true },
     },
   },

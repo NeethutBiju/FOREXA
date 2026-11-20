@@ -187,3 +187,66 @@ def test_live_stream_and_timeloop_simulators():
     assert len(tl_step["yesterday_comparison"]["districts"]) == 8
 
 
+def test_district_authority_dispatch_and_offline_sms_failover():
+    dist_user = {"uid": "dist-1", "email": "collector@wayanad.gov.in", "role": "district_authority"}
+    # Register prototype mobile number
+    reg = api.register_prototype_contact(
+        api.RegisterContactRequest(
+            receiver_mobile="+91 9998887776",
+            district="Wayanad",
+            email="state@ksdma.gov.in",
+            role="authority",
+        ),
+        user=AUTH_USER,
+    )
+    assert reg["prototype_receiver_mobile"] == "+91 9998887776"
+
+    # Fetch automated high-priority alert & default report for Wayanad
+    st = api.get_district_dispatch_state(district="Wayanad", lead_h=24, user=dist_user)
+    assert st["selected_district"] == "Wayanad"
+    assert st["prototype_receiver_mobile"] == "+91 9998887776"
+    assert st["district_alert"]["auto_routed_from_state_authority"] is True
+    assert st["district_final_report"]["district"] == "Wayanad"
+
+    # Simulate recipient going offline -> automatic AI Emergency SMS failover to registered mobile
+    off = api.update_district_presence(
+        api.PresenceToggleRequest(district="Wayanad", is_online=False),
+        user=dist_user,
+    )
+    assert off["presence"]["is_online"] is False
+    assert off["triggered_sms_failover"] is not None
+    assert off["triggered_sms_failover"]["target_mobile"] == "+91 9998887776"
+    assert off["district_alert"]["delivery_status"] == "OFFLINE_CACHED_AND_SMS_SENT"
+
+    # State Authority dispatches final official report while district is offline -> triggers SMS too
+    rep = api.send_final_district_report(
+        api.SendDistrictReportRequest(district="Wayanad", lead_h=24, custom_directive="Open 4 relief camps"),
+        user=AUTH_USER,
+    )
+    assert rep["dispatched"] is True
+    assert rep["triggered_sms_failover"]["target_mobile"] == "+91 9998887776"
+
+    # Simulate 10-min unacknowledged Cloud Tasks timeout escalation
+    esc = api.trigger_unacknowledged_escalation(
+        api.EscalateTimeoutRequest(district="Wayanad"),
+        user=dist_user,
+    )
+    assert esc["escalated"] is True
+    assert "VOICE_CALL_TRIGGERED" in esc["sms_voice_dispatch"]["voice_call_status"]
+
+    # District Authority acknowledges receipt
+    ack = api.acknowledge_district_alert(
+        api.AcknowledgeAlertRequest(district="Wayanad", acknowledged_by="collector@wayanad.gov.in"),
+        user=dist_user,
+    )
+    assert ack["acknowledged"] is True
+    assert ack["district_alert"]["ack_status"] == "ACKNOWLEDGED"
+
+    # Restore online presence
+    api.update_district_presence(
+        api.PresenceToggleRequest(district="Wayanad", is_online=True),
+        user=dist_user,
+    )
+
+
+

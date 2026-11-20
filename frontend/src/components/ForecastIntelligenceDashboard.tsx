@@ -14,11 +14,15 @@ import {
   Sparkles,
   Users,
   Activity,
+  MapPin,
+  Send,
+  Phone,
 } from "lucide-react";
 import {
   addOperationalGuidanceApi,
   ApiStatusState,
   ComputedDistrictForecast,
+  dispatchFinalDistrictReportApi,
   fetchDistrictTimelineApi,
   fetchEvaluationApi,
   fetchHistoricalAnalogsApi,
@@ -32,8 +36,10 @@ import {
   INITIAL_2025_TRAINED_SNAPSHOT,
   mapRawHistoricalMatches,
   MatchedHistoricalAnalog,
+  registerPrototypeMobileApi,
   revertOperationalGuidanceApi,
   SeasonType,
+  stepLiveStreamApi,
   transformBackendDistrictToForecast,
   updateSourceAvailabilityApi,
 } from "../utils/forecastEngine";
@@ -52,13 +58,24 @@ import { DistrictDetailDrawer } from "./DistrictDetailDrawer";
 import { ModelInsightsTab } from "./ModelInsightsTab";
 import { VisualizationTab } from "./VisualizationTab";
 import { ControlRoomTab } from "./ControlRoomTab";
-import { logoutUser, UserSession } from "../firebase";
+import { TimeLoopTab } from "./TimeLoopTab";
+import {
+  getStoredPrototypeMobile,
+  getUserInitials,
+  logoutUser,
+  setStoredPrototypeMobile,
+  trackAnalyticsEvent,
+  triggerNativeOfflineSms,
+  UserSession,
+  validateMobileNumber,
+} from "../firebase";
 
 export type DashboardTab =
   | "forecast"
   | "insights"
   | "visualization"
-  | "control";
+  | "control"
+  | "timeloop";
 
 interface ForecastIntelligenceDashboardProps {
   session: UserSession | null;
@@ -75,17 +92,21 @@ export const ForecastIntelligenceDashboard: React.FC<
 
   const initialRole: "authority" | "technical" =
     forcedRole ||
-    session?.role ||
+    (session?.role === "technical" ? "technical" : undefined) ||
     (location.pathname.includes("authorities") ? "authority" : "technical");
 
   const [activeRole, setActiveRole] = useState<"authority" | "technical">(
     initialRole
   );
+  const [prototypeMobile, setPrototypeMobile] = useState<string>(
+    () => session?.receiverMobile || getStoredPrototypeMobile()
+  );
+  const [dispatchingReport, setDispatchingReport] = useState<boolean>(false);
 
   useEffect(() => {
     if (forcedRole) {
       setActiveRole(forcedRole);
-    } else if (session?.role) {
+    } else if (session?.role === "technical" || session?.role === "authority") {
       setActiveRole(session.role);
     }
   }, [forcedRole, session]);
@@ -98,6 +119,7 @@ export const ForecastIntelligenceDashboard: React.FC<
       hash === "insights" ||
       hash === "visualization" ||
       hash === "control" ||
+      hash === "timeloop" ||
       hash === "forecast"
     ) {
       return hash;
@@ -105,10 +127,19 @@ export const ForecastIntelligenceDashboard: React.FC<
     return "forecast";
   });
 
+  // Live Stream Toggle Switch (10-second demo interval -> updates NWP, AI & Ensemble predictions in Model Insights)
+  const [liveStreamEnabled, setLiveStreamEnabled] = useState<boolean>(false);
+  const [liveCountdownSec, setLiveCountdownSec] = useState<number>(10);
+  const [liveTickCount, setLiveTickCount] = useState<number>(0);
+  const [liveStreamSnapshot, setLiveStreamSnapshot] = useState<any>(null);
+
   const changeTab = (tab: DashboardTab) => {
     if (
       !isTechnicalRole &&
-      (tab === "insights" || tab === "visualization" || tab === "control")
+      (tab === "insights" ||
+        tab === "visualization" ||
+        tab === "control" ||
+        tab === "timeloop")
     ) {
       showToast(
         "Authorities view displays only the Final Blended Forecast & Priority Districts."
@@ -117,6 +148,7 @@ export const ForecastIntelligenceDashboard: React.FC<
     }
     setActiveTab(tab);
     window.history.replaceState(null, "", `#${tab}`);
+    trackAnalyticsEvent("switch_dashboard_tab", { tab, role: activeRole });
   };
 
   useEffect(() => {
@@ -171,6 +203,71 @@ export const ForecastIntelligenceDashboard: React.FC<
     null
   );
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  const runLiveStreamUpdate = () => {
+    stepLiveStreamApi(1, selectedDistrictName, null, session?.idToken)
+      .then((res) => {
+        if (!res?.districts) return;
+        setLiveStreamSnapshot(res);
+        setLiveTickCount((c) => c + 1);
+        setLastBlendTime(res.simulated_timestamp_utc || "Live Stream");
+        setRawLatestResponse((prevLatest: any) => {
+          if (!prevLatest?.districts) return prevLatest;
+          const byName: Record<string, any> = {};
+          res.districts.forEach((d: any) => {
+            byName[String(d.district).toLowerCase()] = d;
+          });
+          const updatedDistricts = prevLatest.districts.map((orig: any) => {
+            const match = byName[String(orig.district).toLowerCase()];
+            if (!match) return orig;
+            return {
+              ...orig,
+              blended_forecast: {
+                ...(orig.blended_forecast || {}),
+                ...match.blended,
+              },
+              unified_weights: {
+                ...(orig.unified_weights || {}),
+                W_NWP_pct:
+                  res.unified_weights?.W_NWP_pct ??
+                  orig.unified_weights?.W_NWP_pct,
+                W_AI_pct:
+                  res.unified_weights?.W_AI_pct ??
+                  orig.unified_weights?.W_AI_pct,
+                W_Ensemble_pct:
+                  res.unified_weights?.W_Ensemble_pct ??
+                  orig.unified_weights?.W_Ensemble_pct,
+              },
+            };
+          });
+          return { ...prevLatest, districts: updatedDistricts };
+        });
+        showToast(
+          `Live Stream updated NWP, AI & Ensemble predictions in Model Insights · ${res.event_phase || "Active Weather Update"}`
+        );
+        triggerPulse();
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (!liveStreamEnabled || !isTechnicalRole) {
+      setLiveCountdownSec(10);
+      return;
+    }
+    // Wait 10 seconds first (not immediate), then update NWP, AI & Ensemble predictions in Model Insights every 10s
+    setLiveCountdownSec(10);
+    const timer = setInterval(() => {
+      setLiveCountdownSec((prev) => {
+        if (prev <= 1) {
+          runLiveStreamUpdate();
+          return 10;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [liveStreamEnabled, isTechnicalRole, selectedDistrictName, session?.idToken]);
 
   // Historical Analogs state
   const [analogYearsRange, setAnalogYearsRange] = useState<5 | 10 | 20>(10);
@@ -523,7 +620,7 @@ export const ForecastIntelligenceDashboard: React.FC<
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#FAFAFE] text-slate-800">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F4F9F6] text-slate-800">
       {/* ====================================================================
        * STICKY GLOBAL HEADER (CLEAN WHITE + VIOLET HEADING ACCENTS)
        * ==================================================================== */}
@@ -531,12 +628,12 @@ export const ForecastIntelligenceDashboard: React.FC<
         <div className="max-w-[1440px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           {/* LEFT: FOREXA Logo + Tagline */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#6D28D9] flex items-center justify-center text-white shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#14532D] flex items-center justify-center text-white shadow-sm">
               <Radio className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="font-extrabold text-base tracking-tight text-[#6D28D9]">
+                <span className="font-extrabold text-base tracking-tight text-[#14532D]">
                   FOREXA
                 </span>
                 <span className="text-slate-200">|</span>
@@ -557,14 +654,14 @@ export const ForecastIntelligenceDashboard: React.FC<
               onClick={() => changeTab("forecast")}
               className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                 activeTab === "forecast"
-                  ? "bg-[#F5F3FF] text-[#6D28D9]"
+                  ? "bg-[#ECFDF5] text-[#14532D]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
               <BarChart3 className="w-3.5 h-3.5" />
               <span>{isTechnicalRole ? "Forecast" : "Authorities Forecast"}</span>
               {activeTab === "forecast" && (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#6D28D9] rounded-full" />
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#14532D] rounded-full" />
               )}
             </button>
 
@@ -575,14 +672,14 @@ export const ForecastIntelligenceDashboard: React.FC<
                   onClick={() => changeTab("insights")}
                   className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                     activeTab === "insights"
-                      ? "bg-[#F5F3FF] text-[#6D28D9]"
+                      ? "bg-[#ECFDF5] text-[#14532D]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
                   <Sliders className="w-3.5 h-3.5" />
                   <span>Model Insights</span>
                   {activeTab === "insights" && (
-                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#6D28D9] rounded-full" />
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#14532D] rounded-full" />
                   )}
                 </button>
 
@@ -591,14 +688,14 @@ export const ForecastIntelligenceDashboard: React.FC<
                   onClick={() => changeTab("visualization")}
                   className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                     activeTab === "visualization"
-                      ? "bg-[#F5F3FF] text-[#6D28D9]"
+                      ? "bg-[#ECFDF5] text-[#14532D]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
                   <Activity className="w-3.5 h-3.5" />
                   <span>Visualization</span>
                   {activeTab === "visualization" && (
-                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#6D28D9] rounded-full" />
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#14532D] rounded-full" />
                   )}
                 </button>
 
@@ -607,77 +704,82 @@ export const ForecastIntelligenceDashboard: React.FC<
                   onClick={() => changeTab("control")}
                   className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
                     activeTab === "control"
-                      ? "bg-[#F5F3FF] text-[#6D28D9]"
+                      ? "bg-[#ECFDF5] text-[#14532D]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
                   <Shield className="w-3.5 h-3.5" />
                   <span>Control Room</span>
                   {controlBadgeCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#6D28D9] text-white">
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#14532D] text-white">
                       {controlBadgeCount}
                     </span>
                   )}
                   {activeTab === "control" && (
-                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#6D28D9] rounded-full" />
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#14532D] rounded-full" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => changeTab("timeloop")}
+                  className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    activeTab === "timeloop"
+                      ? "bg-[#ECFDF5] text-[#14532D]"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  <span>TimeLoop</span>
+                  {activeTab === "timeloop" && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#14532D] rounded-full" />
                   )}
                 </button>
               </>
             )}
           </nav>
 
-          {/* RIGHT: Role Switcher, Global Filters, Admin Login */}
+          {/* RIGHT: Live Stream Switch (Technical Only) + Lead Time + Initials Avatar */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Role Switcher */}
-            <div className="inline-flex p-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold">
+            {isTechnicalRole && (
               <button
                 type="button"
+                role="switch"
+                aria-checked={liveStreamEnabled}
                 onClick={() => {
-                  setActiveRole("authority");
-                  navigate("/authorities");
+                  const next = !liveStreamEnabled;
+                  setLiveStreamEnabled(next);
+                  setLiveCountdownSec(10);
+                  showToast(
+                    next
+                      ? "Live Stream started · NWP, AI & Ensemble predictions will update in 10 seconds inside the Model Insights tab. Please go to Model Insights."
+                      : "Live Stream paused."
+                  );
                 }}
-                className={`px-3 py-1 rounded-lg flex items-center gap-1.5 transition ${
-                  !isTechnicalRole
-                    ? "bg-white text-[#6D28D9] shadow-sm font-bold"
-                    : "text-slate-600 hover:text-slate-900"
+                className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+                  liveStreamEnabled
+                    ? "bg-[#ECFDF5] border-[#15803D] text-[#14532D]"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-emerald-200"
                 }`}
               >
-                <Shield className="w-3 h-3" />
-                <span>Authorities</span>
+                <span
+                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                    liveStreamEnabled ? "bg-[#15803D]" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      liveStreamEnabled ? "translate-x-3.5" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+                <span>
+                  {liveStreamEnabled
+                    ? `Live (${liveCountdownSec}s${liveTickCount > 0 ? ` · #${liveTickCount}` : ""})`
+                    : "Live Stream"}
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveRole("technical");
-                  navigate("/technical");
-                }}
-                className={`px-3 py-1 rounded-lg flex items-center gap-1.5 transition ${
-                  isTechnicalRole
-                    ? "bg-white text-[#6D28D9] shadow-sm font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Users className="w-3 h-3" />
-                <span>Technical</span>
-              </button>
-            </div>
-
-            {/* Season Dropdown */}
-            <select
-              aria-label="Select Season"
-              value={season}
-              onChange={(e) => {
-                setSeason(e.target.value as SeasonType);
-                triggerPulse();
-              }}
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]"
-            >
-              <option value="Southwest Monsoon">Southwest Monsoon</option>
-              <option value="Northeast Monsoon">Northeast Monsoon</option>
-              <option value="Pre-Monsoon / Cyclone">
-                Pre-Monsoon / Cyclone
-              </option>
-            </select>
+            )}
 
             {/* Lead Time Dropdown */}
             <select
@@ -686,7 +788,7 @@ export const ForecastIntelligenceDashboard: React.FC<
               onChange={(e) =>
                 handleLeadTimeChange(Number(e.target.value) as HorizonHours)
               }
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]"
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-[#14532D] focus:outline-none focus:ring-2 focus:ring-[#15803D]"
             >
               {HORIZONS.map((h) => (
                 <option key={h} value={h}>
@@ -695,12 +797,22 @@ export const ForecastIntelligenceDashboard: React.FC<
               ))}
             </select>
 
-            {/* Admin Login / User Status Button */}
-            {session ? (
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1.5 rounded-xl bg-[#F5F3FF] text-[#6D28D9] text-xs font-semibold max-w-[130px] truncate">
-                  {session.email.split("@")[0]}
-                </span>
+            {/* Professional Initials Avatar Badge (First & Last Letter + Role) */}
+            {session && (
+              <div className="flex items-center gap-2.5">
+                <div className="inline-flex items-center gap-2.5 pl-1.5 pr-3.5 py-1 rounded-full bg-[#ECFDF5] border border-emerald-200">
+                  <span className="w-7 h-7 rounded-full bg-[#14532D] text-white text-xs font-bold flex items-center justify-center">
+                    {getUserInitials(session.email)}
+                  </span>
+                  <div className="leading-tight">
+                    <div className="text-xs font-bold text-[#14532D]">
+                      {isTechnicalRole ? "Technical Specialist" : "State Authority"}
+                    </div>
+                    <div className="text-[10px] font-medium text-emerald-800/80">
+                      Kerala
+                    </div>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={async () => {
@@ -711,18 +823,9 @@ export const ForecastIntelligenceDashboard: React.FC<
                   title="Sign out"
                   className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white text-xs font-semibold shadow-sm transition"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin Login</span>
-              </button>
             )}
           </div>
         </div>
@@ -733,7 +836,7 @@ export const ForecastIntelligenceDashboard: React.FC<
           role="region"
           aria-label="Active district advisories"
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#6D28D9] shrink-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#14532D] shrink-0">
             Active Advisories
           </span>
 
@@ -747,11 +850,11 @@ export const ForecastIntelligenceDashboard: React.FC<
                 }
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition border ${
                   alertItem.district.name === selectedForecast.district.name
-                    ? "bg-[#F5F3FF] text-[#6D28D9] border-purple-200 font-semibold"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-purple-200 hover:text-slate-900"
+                    ? "bg-[#ECFDF5] text-[#14532D] border-emerald-200 font-semibold"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-200 hover:text-slate-900"
                 }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#6D28D9]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#14532D]" />
                 <strong className="text-slate-900">
                   {alertItem.district.name}
                 </strong>
@@ -767,11 +870,11 @@ export const ForecastIntelligenceDashboard: React.FC<
         {/* Global Banner when any API is offline */}
         {offlineApis.length > 0 && (
           <div
-            className="w-full px-6 py-2.5 bg-[#F5F3FF] border-t border-purple-200 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-800"
+            className="w-full px-6 py-2.5 bg-[#ECFDF5] border-t border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-800"
             role="alert"
           >
             <div className="flex items-center gap-2">
-              <WifiOff className="w-4 h-4 text-[#6D28D9] shrink-0" />
+              <WifiOff className="w-4 h-4 text-[#14532D] shrink-0" />
               <span>
                 {offlineApis.length === 3
                   ? "No model available · All 3 forecast APIs are currently offline."
@@ -797,7 +900,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                   );
                   showToast("All 3 model APIs restored online.");
                 }}
-                className="px-3 py-1 rounded-lg bg-[#6D28D9] text-white text-xs font-semibold shadow-sm"
+                className="px-3 py-1 rounded-lg bg-[#14532D] text-white text-xs font-semibold shadow-sm"
               >
                 Restore All 3 APIs
               </button>
@@ -808,8 +911,8 @@ export const ForecastIntelligenceDashboard: React.FC<
 
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white text-slate-800 border border-purple-200 px-5 py-3.5 rounded-2xl shadow-lg flex items-center gap-3 text-xs font-semibold">
-          <CheckCircle2 className="w-4 h-4 text-[#6D28D9] shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white text-slate-800 border border-emerald-200 px-5 py-3.5 rounded-2xl shadow-lg flex items-center gap-3 text-xs font-semibold">
+          <CheckCircle2 className="w-4 h-4 text-[#14532D] shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
@@ -818,6 +921,38 @@ export const ForecastIntelligenceDashboard: React.FC<
        * SPACIOUS MAIN CONTENT CONTAINER
        * ==================================================================== */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-8 space-y-8">
+        {isTechnicalRole && liveStreamEnabled && (
+          <div className="rounded-2xl bg-[#ECFDF5] border border-emerald-300 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-[#14532D]">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#15803D] animate-pulse shrink-0" />
+              <span>
+                <strong>Simulated Real-Time Stream (10-second interval):</strong>{" "}
+                NWP, AI, and Ensemble model predictions will update after{" "}
+                <strong>10 seconds</strong> inside{" "}
+                <strong>Model Insights</strong> (please switch to Model Insights
+                to view live updates). Instead of a live external weather API,
+                updates are simulated every 10s here; in live operational
+                deployment, forecast feeds update every{" "}
+                <strong>30 minutes to 1 hour</strong>.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {activeTab !== "insights" && (
+                <button
+                  type="button"
+                  onClick={() => changeTab("insights")}
+                  className="px-3 py-1.5 rounded-lg bg-[#14532D] hover:bg-[#052E16] text-white font-bold text-xs transition"
+                >
+                  Go to Model Insights →
+                </button>
+              )}
+              <span className="font-bold px-3 py-1 rounded-full bg-white border border-emerald-200">
+                Next update in {liveCountdownSec}s
+              </span>
+            </div>
+          </div>
+        )}
+
         {activeTab === "forecast" && (
           <>
             {/* ==============================================================
@@ -829,7 +964,7 @@ export const ForecastIntelligenceDashboard: React.FC<
             >
               <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#14532D]">
                     Forecast Window
                   </span>
                   <div className="flex flex-wrap items-center gap-4 mt-1">
@@ -837,7 +972,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                       Prediction Timeline
                     </h1>
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-200">
-                      <Clock className="w-3.5 h-3.5 text-[#6D28D9]" />
+                      <Clock className="w-3.5 h-3.5 text-[#14532D]" />
                       Valid: {selectedForecast.validTime}
                     </span>
                   </div>
@@ -874,7 +1009,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                       onClick={() => handleLeadTimeChange(seg.target)}
                       className={`px-3.5 py-1.5 rounded-lg transition ${
                         seg.isMatch
-                          ? "bg-[#6D28D9] text-white shadow-sm"
+                          ? "bg-[#14532D] text-white shadow-sm"
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
@@ -897,7 +1032,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                     handleLeadTimeChange(HORIZONS[idx]);
                   }}
                   aria-label="Forecast horizon slider from 6 hours to 72 hours"
-                  className="w-full accent-[#6D28D9] h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                  className="w-full accent-[#14532D] h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-1 mt-3">
                   {HORIZONS.map((h) => {
@@ -909,7 +1044,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                         onClick={() => handleLeadTimeChange(h)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
                           active
-                            ? "bg-[#6D28D9] text-white shadow-sm"
+                            ? "bg-[#14532D] text-white shadow-sm"
                             : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         }`}
                       >
@@ -933,7 +1068,7 @@ export const ForecastIntelligenceDashboard: React.FC<
               <div className="lg:col-span-3 rounded-2xl bg-white border border-slate-200/90 shadow-sm overflow-hidden flex flex-col">
                 <div className="p-5 border-b border-slate-100">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[#6D28D9]">
+                    <h2 className="text-base font-bold text-[#14532D]">
                       District Priority
                     </h2>
                     <span className="text-xs font-semibold text-slate-500">
@@ -975,28 +1110,16 @@ export const ForecastIntelligenceDashboard: React.FC<
                         }}
                         className={`rounded-xl p-3.5 cursor-pointer transition-all duration-150 bg-white border ${
                           isSelected
-                            ? "border-[#6D28D9] ring-1 ring-[#6D28D9] bg-[#F5F3FF]/40"
-                            : "border-slate-100 hover:border-purple-200 hover:bg-slate-50/60"
+                            ? "border-[#14532D] ring-1 ring-[#14532D] bg-[#ECFDF5]/40"
+                            : "border-slate-100 hover:border-emerald-200 hover:bg-slate-50/60"
                         }`}
                       >
-                        {item.isCycloneAffected && (
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F5F3FF] text-[#6D28D9] text-[10px] font-bold">
-                              <CycloneSpiralIcon className="w-3 h-3" />
-                              <span>Cyclonic System</span>
-                            </span>
-                            <span className="text-[11px] font-medium text-slate-500">
-                              {item.currentPoint.windMs} m/s
-                            </span>
-                          </div>
-                        )}
-
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <span
                               className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ${
                                 isSelected
-                                  ? "bg-[#6D28D9] text-white"
+                                  ? "bg-[#14532D] text-white"
                                   : "bg-slate-100 text-slate-700"
                               }`}
                             >
@@ -1016,28 +1139,20 @@ export const ForecastIntelligenceDashboard: React.FC<
                           )}
                         </div>
 
-                        <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-600">
-                          <div className="truncate">
-                            {item.hasNativeStation ? (
-                              <>
-                                <span className="font-semibold text-slate-900">
-                                  {item.rain6hMm ?? "—"} mm/6h
-                                </span>
-                                <span className="mx-1.5 text-slate-300">·</span>
-                                <span>{item.eventType}</span>
-                              </>
-                            ) : (
-                              <span className="text-slate-400">
-                                No station coverage
+                        <div className="mt-2 text-xs text-slate-600 truncate">
+                          {item.hasNativeStation ? (
+                            <>
+                              <span className="font-semibold text-slate-900">
+                                {item.rain6hMm ?? "—"} mm/6h
                               </span>
-                            )}
-                          </div>
-
-                          <MiniSparkline
-                            series={item.hourlySeries}
-                            severity={item.severity}
-                            activeHorizon={leadTime}
-                          />
+                              <span className="mx-1.5 text-slate-300">·</span>
+                              <span>{item.eventType}</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400">
+                              No station coverage
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -1065,11 +1180,11 @@ export const ForecastIntelligenceDashboard: React.FC<
 
               {/* RIGHT COLUMN: FINAL FORECAST CARD (CLEAN WHITE + VIOLET HEADING) */}
               <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm overflow-hidden">
-                <div className="h-1.5 w-full bg-[#6D28D9]" />
+                <div className="h-1.5 w-full bg-[#14532D]" />
 
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#6D28D9]">
+                    <div className="text-xs font-bold text-[#14532D]">
                       Final Forecast · +{leadTime}h
                     </div>
                     <h2 className="text-lg font-bold text-slate-900 mt-0.5">
@@ -1090,7 +1205,7 @@ export const ForecastIntelligenceDashboard: React.FC<
 
                 <div className="p-6 space-y-5">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[#F5F3FF] text-[#6D28D9] flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-[#ECFDF5] text-[#14532D] flex items-center justify-center shrink-0">
                       <EventIcon
                         type={selectedForecast.iconType}
                         className="w-6 h-6"
@@ -1107,32 +1222,49 @@ export const ForecastIntelligenceDashboard: React.FC<
                   </div>
 
                   {selectedForecast.hasNativeStation && (
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 grid grid-cols-3 gap-3 text-center">
-                      <div>
-                        <div className="text-[11px] font-semibold text-[#6D28D9]">
-                          6h Rainfall
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2 p-3.5 rounded-xl bg-[#F4F9F6] border border-emerald-200/80 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#14532D]">
+                          6h Blended Rainfall
+                        </span>
+                        <span className="text-lg font-extrabold text-slate-900">
+                          {selectedForecast.rain6hMm ?? "—"} mm
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div className="text-[11px] font-semibold text-[#15803D]">
+                          Temperature
                         </div>
                         <div className="text-base font-bold text-slate-900 mt-1">
-                          {selectedForecast.rain6hMm ?? "—"} mm
+                          {selectedForecast.currentPoint.tempC ?? "—"} °C
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[11px] font-semibold text-[#6D28D9]">
-                          Temp / RH
+
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div className="text-[11px] font-semibold text-[#15803D]">
+                          Humidity
                         </div>
-                        <div className="text-sm font-bold text-slate-900 mt-1">
-                          {selectedForecast.currentPoint.tempC ?? "—"}°C ·{" "}
-                          {selectedForecast.currentPoint.humidityPct ?? "—"}%
+                        <div className="text-base font-bold text-slate-900 mt-1">
+                          {selectedForecast.currentPoint.humidityPct ?? "—"} %
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[11px] font-semibold text-[#6D28D9]">
-                          Wind / Press
+
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div className="text-[11px] font-semibold text-[#15803D]">
+                          Wind Speed
                         </div>
-                        <div className="text-xs font-bold text-slate-900 mt-1">
-                          {selectedForecast.currentPoint.windMs ?? "—"} m/s ·{" "}
-                          {selectedForecast.currentPoint.pressureHpa ?? "—"}{" "}
-                          hPa
+                        <div className="text-base font-bold text-slate-900 mt-1">
+                          {selectedForecast.currentPoint.windMs ?? "—"} m/s
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div className="text-[11px] font-semibold text-[#15803D]">
+                          Pressure
+                        </div>
+                        <div className="text-base font-bold text-slate-900 mt-1">
+                          {selectedForecast.currentPoint.pressureHpa ?? "—"} hPa
                         </div>
                       </div>
                     </div>
@@ -1141,7 +1273,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                   {/* Source Contribution Percentages (Technical Role Only; Authorities see ONLY Final Blended Forecast) */}
                   {isTechnicalRole && (
                     <div>
-                      <div className="flex items-center justify-between text-xs font-bold text-[#6D28D9] mb-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#14532D] mb-2">
                         <span>Adaptive Source Contributions</span>
                         <span className="text-[11px] font-medium text-slate-400">
                           Unified Weights
@@ -1164,11 +1296,11 @@ export const ForecastIntelligenceDashboard: React.FC<
                             {selectedForecast.weights.ai}%
                           </div>
                         </div>
-                        <div className="p-3 rounded-xl bg-[#F5F3FF] border border-purple-200 text-center">
-                          <div className="text-[11px] font-semibold text-[#6D28D9]">
+                        <div className="p-3 rounded-xl bg-[#ECFDF5] border border-emerald-200 text-center">
+                          <div className="text-[11px] font-semibold text-[#14532D]">
                             Ensemble
                           </div>
-                          <div className="text-base font-bold text-[#6D28D9] mt-0.5">
+                          <div className="text-base font-bold text-[#14532D] mt-0.5">
                             {selectedForecast.weights.ensemble}%
                           </div>
                         </div>
@@ -1196,19 +1328,11 @@ export const ForecastIntelligenceDashboard: React.FC<
                           : "Normal conditions"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">
-                        Confidence:
-                      </span>
-                      <span className="font-bold text-[#6D28D9]">
-                        {selectedForecast.confidence}
-                      </span>
-                    </div>
                   </div>
 
                   {selectedForecast.activeGuidanceNote && (
-                    <div className="p-3.5 rounded-xl bg-[#F5F3FF] border border-purple-200 text-slate-800 text-xs">
-                      <div className="font-bold text-[#6D28D9] flex items-center gap-1.5">
+                    <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-emerald-200 text-slate-800 text-xs">
+                      <div className="font-bold text-[#14532D] flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Active Control Room Guidance</span>
                       </div>
@@ -1218,11 +1342,143 @@ export const ForecastIntelligenceDashboard: React.FC<
                     </div>
                   )}
 
+                  {/* State Authorities -> District Authority Automated Report & Offline SMS Dispatch */}
+                  {!isTechnicalRole && (
+                    <div className="p-4 rounded-xl bg-[#F4F9F6] border border-emerald-200 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#14532D] flex items-center gap-1.5">
+                          <Send className="w-3.5 h-3.5" />
+                          <span>District Authority Auto-Dispatch</span>
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          SMS Failover Ready
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-[#14532D] shrink-0" />
+                        <input
+                          type="tel"
+                          value={prototypeMobile}
+                          onChange={(e) => {
+                            setPrototypeMobile(e.target.value);
+                          }}
+                          onBlur={() => {
+                            const check = validateMobileNumber(prototypeMobile);
+                            if (check.valid) {
+                              setPrototypeMobile(check.formatted);
+                              setStoredPrototypeMobile(check.formatted);
+                              registerPrototypeMobileApi({
+                                receiver_mobile: check.formatted,
+                                district: selectedForecast.district.name,
+                                email:
+                                  session?.email ||
+                                  "state-authority@kerala.gov.in",
+                                role: "authority",
+                                token: session?.idToken,
+                              });
+                            }
+                          }}
+                          placeholder="Enter 10-digit receiver mobile"
+                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-white border border-emerald-100 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#14532D]"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          disabled={dispatchingReport}
+                          onClick={async () => {
+                            const check = validateMobileNumber(prototypeMobile);
+                            if (!check.valid) {
+                              showToast(
+                                check.error ||
+                                  "Please enter a real 10-digit District Receiver Mobile Number before dispatching."
+                              );
+                              return;
+                            }
+                            setPrototypeMobile(check.formatted);
+                            setStoredPrototypeMobile(check.formatted);
+                            setDispatchingReport(true);
+                            try {
+                              await registerPrototypeMobileApi({
+                                receiver_mobile: check.formatted,
+                                district: selectedForecast.district.name,
+                                email:
+                                  session?.email ||
+                                  "state-authority@kerala.gov.in",
+                                role: "authority",
+                                token: session?.idToken,
+                              });
+                              const res = await dispatchFinalDistrictReportApi({
+                                district: selectedForecast.district.name,
+                                lead_h: leadTime,
+                                issued_by:
+                                  session?.email ||
+                                  "State Disaster Management Authority (KSDMA)",
+                                role: "authority",
+                                token: session?.idToken,
+                              });
+                              if (res?.recipient_is_offline || res?.triggered_sms_failover) {
+                                const smsText =
+                                  res?.sms_body ||
+                                  `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h) onset +${leadTime}h.`;
+                                triggerNativeOfflineSms(check.formatted, smsText);
+                                showToast(
+                                  `${selectedForecast.district.name} District Authority is OFFLINE · Triggered SMS to ${check.formatted}!`
+                                );
+                              } else {
+                                showToast(
+                                  `Final Official Report & Alert delivered online to ${selectedForecast.district.name} District Authority Dashboard!`
+                                );
+                              }
+                            } finally {
+                              setDispatchingReport(false);
+                            }
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-[#14532D] hover:bg-[#052E16] disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            {dispatchingReport
+                              ? "Dispatching Report..."
+                              : `Send Final Report to ${selectedForecast.district.name} Authority`}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const smsBody = `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h, Wind ${selectedForecast.currentPoint.windMs ?? "—"}m/s) onset +${leadTime}h. Activate district emergency protocol.`;
+                            const res = triggerNativeOfflineSms(
+                              prototypeMobile,
+                              smsBody
+                            );
+                            if (!res.launched) {
+                              showToast(
+                                res.error ||
+                                  "Please enter a valid 10-digit receiver mobile number first."
+                              );
+                            } else {
+                              showToast(
+                                `Opening native SIM SMS to ${res.target} (works offline via cellular network).`
+                              );
+                            }
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#ECFDF5] text-[#14532D] border border-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>Send Offline SIM SMS</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={scrollToAnalogs}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6D28D9] hover:underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#14532D] hover:underline"
                     >
                       <History className="w-3.5 h-3.5" />
                       <span>
@@ -1236,7 +1492,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                     <button
                       type="button"
                       onClick={() => setDrawerOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-[#F5F3FF] hover:bg-[#6D28D9] text-[#6D28D9] hover:text-white text-xs font-semibold transition"
+                      className="px-4 py-2 rounded-xl bg-[#ECFDF5] hover:bg-[#14532D] text-[#14532D] hover:text-white text-xs font-semibold transition"
                     >
                       Full Details
                     </button>
@@ -1257,202 +1513,6 @@ export const ForecastIntelligenceDashboard: React.FC<
                 onSelectLeadTime={handleLeadTimeChange}
               />
             </section>
-
-            {/* ==============================================================
-             * 3.5 HISTORICAL ANALOGS ("Has this happened before?")
-             * ============================================================== */}
-            <section
-              ref={analogsSectionRef}
-              className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 space-y-6 shadow-sm"
-              aria-label="Historical weather analogs comparison"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
-                    Historical Context
-                  </span>
-                  <h2 className="text-lg font-bold text-slate-900 mt-1">
-                    Has This Happened Before?
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Matched on rainfall intensity, duration, terrain, and season
-                    against verified observation records
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex p-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold">
-                    {([5, 10, 20] as const).map((yr) => (
-                      <button
-                        key={yr}
-                        type="button"
-                        onClick={() => setAnalogYearsRange(yr)}
-                        className={`px-3 py-1.5 rounded-lg transition ${
-                          analogYearsRange === yr
-                            ? "bg-[#6D28D9] text-white"
-                            : "text-slate-600 hover:text-slate-900"
-                        }`}
-                      >
-                        {yr} years
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="inline-flex p-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setSameDistrictOnly(true)}
-                      className={`px-3.5 py-1.5 rounded-lg transition ${
-                        sameDistrictOnly
-                          ? "bg-[#6D28D9] text-white"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      Same district only
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSameDistrictOnly(false)}
-                      className={`px-3.5 py-1.5 rounded-lg transition ${
-                        !sameDistrictOnly
-                          ? "bg-[#6D28D9] text-white"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      Anywhere in Kerala
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {matchedAnalogs.length === 0 ? (
-                <div className="p-8 rounded-2xl border border-slate-200 bg-slate-50 text-center text-xs">
-                  <div className="font-bold text-[#6D28D9] text-sm mb-1">
-                    No Historical Observation Records Available for This Filter
-                  </div>
-                  <p className="text-slate-500">
-                    {analogStatusMsg ||
-                      "Switch to 'Anywhere in Kerala' to compare against monitored districts."}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {matchedAnalogs.map((analog, idx) => {
-                      const isActiveAnalog =
-                        activeAnalogForOverlay?.id === analog.id;
-                      const rp = analog.retrospectiveModelPerformance;
-
-                      return (
-                        <div
-                          key={analog.id}
-                          onClick={() => {
-                            setSelectedAnalogId(analog.id);
-                            setAnalogHighlightDistrictId(analog.districtName);
-                            showToast(
-                              `Selected ${analog.districtName} (${analog.dateRange}) for curve comparison.`
-                            );
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelectedAnalogId(analog.id);
-                              setAnalogHighlightDistrictId(analog.districtName);
-                            }
-                          }}
-                          className={`rounded-2xl border p-5 cursor-pointer transition-all duration-200 flex flex-col justify-between bg-white ${
-                            isActiveAnalog
-                              ? "border-[#6D28D9] ring-1 ring-[#6D28D9] shadow-sm"
-                              : "border-slate-200 hover:border-purple-300"
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-2 mb-3">
-                              <div>
-                                <span className="text-[11px] font-semibold text-[#6D28D9]">
-                                  Match #{idx + 1} · {analog.year}
-                                </span>
-                                <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                                  {analog.districtName} · {analog.dateRange}
-                                </h3>
-                              </div>
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F5F3FF] text-[#6D28D9] shrink-0">
-                                {analog.similarityPct}%
-                              </span>
-                            </div>
-
-                            <div className="space-y-2 my-3 text-xs text-slate-600">
-                              <div className="flex justify-between font-semibold text-slate-800">
-                                <span>Observed 6h Rain:</span>
-                                <span>{analog.recordedRain6hMm} mm</span>
-                              </div>
-                              {rp && rp.blended_forecast_6h_mm !== null && (
-                                <div className="flex justify-between font-semibold text-[#6D28D9]">
-                                  <span>Blended Forecast Then:</span>
-                                  <span>{rp.blended_forecast_6h_mm} mm</span>
-                                </div>
-                              )}
-                              <div className="flex justify-between">
-                                <span>Temp &amp; Wind:</span>
-                                <span>
-                                  {analog.tempC}°C · {analog.windMs} m/s
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Condition:</span>
-                                <span className="font-medium text-slate-800">
-                                  {analog.weatherCondition}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold">
-                            <span className="text-slate-400">Regime:</span>
-                            <span className="text-[#6D28D9]">
-                              {analog.eventType.replace(/_/g, " ")}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {activeAnalogForOverlay && (
-                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                      <div className="lg:col-span-8">
-                        <AnalogOverlayChart
-                          forecast={selectedForecast}
-                          analog={activeAnalogForOverlay}
-                          darkMode={false}
-                        />
-                      </div>
-
-                      <div className="lg:col-span-4 space-y-2.5 text-xs text-slate-600">
-                        <div className="p-4 rounded-xl bg-white border border-slate-200">
-                          <div className="text-xs font-bold text-[#6D28D9]">
-                            Historical Match Insight
-                          </div>
-                          <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Comparing current +{leadTime}h trajectory in{" "}
-                            <strong className="text-slate-900">
-                              {selectedForecast.district.name}
-                            </strong>{" "}
-                            against the observed profile from{" "}
-                            <strong className="text-slate-900">
-                              {activeAnalogForOverlay.monthYearLabel}
-                            </strong>{" "}
-                            ({activeAnalogForOverlay.similarityPct}% similarity).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
           </>
         )}
 
@@ -1470,6 +1530,10 @@ export const ForecastIntelligenceDashboard: React.FC<
             versionsData={versionsData}
             leadTime={leadTime}
             darkMode={false}
+            liveStreamEnabled={liveStreamEnabled}
+            liveCountdownSec={liveCountdownSec}
+            liveTickCount={liveTickCount}
+            liveStreamSnapshot={liveStreamSnapshot}
             onSelectDistrict={(name) => handleSelectDistrict(name, false)}
           />
         )}
@@ -1509,6 +1573,13 @@ export const ForecastIntelligenceDashboard: React.FC<
             }}
             onNavigateLogin={() => navigate("/login")}
           />
+        )}
+
+        {/* ================================================================
+         * 7. TAB 5: FOREXA TIMELOOP (CONTINUOUS LEARNING SIMULATOR)
+         * ================================================================ */}
+        {activeTab === "timeloop" && isTechnicalRole && (
+          <TimeLoopTab session={session} />
         )}
       </main>
 

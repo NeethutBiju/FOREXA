@@ -34,8 +34,17 @@ def init_db() -> None:
             """CREATE TABLE IF NOT EXISTS user_accounts(
                 uid VARCHAR PRIMARY KEY, email VARCHAR, role VARCHAR,
                 state_region VARCHAR, auth_provider VARCHAR,
+                assigned_district VARCHAR, receiver_mobile VARCHAR,
                 created_at TIMESTAMP, last_login_at TIMESTAMP)"""
         )
+        for col_sql in (
+            "ALTER TABLE user_accounts ADD COLUMN IF NOT EXISTS assigned_district VARCHAR",
+            "ALTER TABLE user_accounts ADD COLUMN IF NOT EXISTS receiver_mobile VARCHAR",
+        ):
+            try:
+                c.execute(col_sql)
+            except Exception:
+                pass
         c.execute(
             """CREATE TABLE IF NOT EXISTS login_audit_logs(
                 event_id VARCHAR PRIMARY KEY, uid VARCHAR, email VARCHAR,
@@ -69,20 +78,27 @@ def upsert_user_account(row: dict) -> dict:
     init_db()
     now = datetime.now(timezone.utc)
     with _lock, _con() as c:
-        existing = c.execute("SELECT created_at, role, state_region FROM user_accounts WHERE uid=?", [row["uid"]]).fetchone()
+        existing = c.execute(
+            "SELECT created_at, role, state_region, assigned_district, receiver_mobile FROM user_accounts WHERE uid=?",
+            [row["uid"]],
+        ).fetchone()
         created_at = existing[0] if existing else now
         role = row.get("role") or (existing[1] if existing else "authority")
         state_region = row.get("state_region") or (existing[2] if existing else "Kerala")
+        assigned_district = row.get("assigned_district") or (existing[3] if existing and len(existing) > 3 else "Wayanad")
+        receiver_mobile = row.get("receiver_mobile") or (existing[4] if existing and len(existing) > 4 else "")
         c.execute(
             """INSERT OR REPLACE INTO user_accounts
-               (uid, email, role, state_region, auth_provider, created_at, last_login_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (uid, email, role, state_region, auth_provider, assigned_district, receiver_mobile, created_at, last_login_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
                 row["uid"],
                 row.get("email", ""),
                 role,
                 state_region,
                 row.get("auth_provider", "password"),
+                assigned_district,
+                receiver_mobile,
                 created_at,
                 now,
             ],
@@ -92,6 +108,8 @@ def upsert_user_account(row: dict) -> dict:
         "email": row.get("email", ""),
         "role": role,
         "state_region": state_region,
+        "assigned_district": assigned_district,
+        "receiver_mobile": receiver_mobile,
         "auth_provider": row.get("auth_provider", "password"),
         "last_login_at": now.isoformat(),
     }

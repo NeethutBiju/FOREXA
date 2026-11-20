@@ -1,1286 +1,533 @@
-import React, { useEffect, useState } from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  FastForward,
-  BarChart3,
-  Radio,
-  Clock,
-  Layers,
-  Award,
-  CheckCircle2,
-  Activity,
-  History,
-  WifiOff,
-} from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { BarChart3, Layers, TrendingUp } from "lucide-react";
 import {
   ComputedDistrictForecast,
-  fetchLiveStreamStateApi,
-  fetchTimeLoopStateApi,
   HorizonHours,
-  resetLiveStreamApi,
-  resetTimeLoopApi,
-  stepLiveStreamApi,
-  stepTimeLoopApi,
 } from "../utils/forecastEngine";
-import { UserSession } from "../firebase";
+import {
+  KERALA_14_DISTRICTS,
+  trackAnalyticsEvent,
+  UserSession,
+} from "../firebase";
 
 interface VisualizationTabProps {
   allForecasts: ComputedDistrictForecast[];
   selectedForecast: ComputedDistrictForecast;
   leadTime: HorizonHours;
   session: UserSession | null;
-  onSelectDistrict: (districtName: string) => void;
+  onSelectDistrict: (name: string) => void;
 }
+
+type WeatherRegimeOption =
+  | "Heavy Rainfall"
+  | "Extreme Rainfall"
+  | "High Wind / Gusts"
+  | "Normal Monsoon";
+
+const LEAD_TICKS = [1, 6, 12, 24, 48, 72] as const;
 
 export const VisualizationTab: React.FC<VisualizationTabProps> = ({
   allForecasts,
   selectedForecast,
   leadTime,
-  session,
   onSelectDistrict,
 }) => {
-  // Active sub-mode inside Visualization tab so it stays spacious and never congested
-  const [activeSection, setActiveSection] = useState<
-    "blending" | "livestream" | "timeloop"
-  >("blending");
-
-  /* ==========================================================================
-   * A. LIVE STREAM SIMULATOR STATE
-   * ========================================================================== */
-  const [liveState, setLiveState] = useState<any>(null);
-  const [liveRunning, setLiveRunning] = useState<boolean>(false);
-  const [liveFocusDistrict, setLiveFocusDistrict] = useState<string>("Wayanad");
-  const [liveFailSource, setLiveFailSource] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchLiveStreamStateApi(session?.idToken)
-      .then(setLiveState)
-      .catch(() => {});
-  }, [session?.idToken]);
-
-  useEffect(() => {
-    if (!liveRunning) return;
-    const interval = setInterval(() => {
-      stepLiveStreamApi(1, liveFocusDistrict, liveFailSource, session?.idToken)
-        .then(setLiveState)
-        .catch(() => {});
-    }, 1800);
-    return () => clearInterval(interval);
-  }, [liveRunning, liveFocusDistrict, liveFailSource, session?.idToken]);
-
-  const handleStepLiveStream = async (mins = 1) => {
-    const next = await stepLiveStreamApi(
-      mins,
-      liveFocusDistrict,
-      liveFailSource,
-      session?.idToken
-    );
-    setLiveState(next);
-  };
-
-  const handleResetLiveStream = async () => {
-    setLiveRunning(false);
-    setLiveFailSource(null);
-    const res = await resetLiveStreamApi(session?.idToken);
-    setLiveState(res);
-  };
-
-  /* ==========================================================================
-   * B. FOREXA TIMELOOP SIMULATOR STATE
-   * ========================================================================== */
-  const [timeLoopState, setTimeLoopState] = useState<any>(null);
-  const [timeLoopRunning, setTimeLoopRunning] = useState<boolean>(false);
-  const [timeLoopStartDate, setTimeLoopStartDate] =
-    useState<string>("2025-06-01");
-  const [timeLoopBusy, setTimeLoopBusy] = useState<boolean>(false);
-
-  useEffect(() => {
-    fetchTimeLoopStateApi(session?.idToken)
-      .then(setTimeLoopState)
-      .catch(() => {});
-  }, [session?.idToken]);
-
-  useEffect(() => {
-    if (!timeLoopRunning) return;
-    const interval = setInterval(() => {
-      stepTimeLoopApi(1, session?.idToken)
-        .then(setTimeLoopState)
-        .catch(() => {});
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [timeLoopRunning, session?.idToken]);
-
-  const handleAdvanceTimeLoop = async (days: number) => {
-    setTimeLoopBusy(true);
-    try {
-      const next = await stepTimeLoopApi(days, session?.idToken);
-      setTimeLoopState(next);
-    } finally {
-      setTimeLoopBusy(false);
-    }
-  };
-
-  const handleResetTimeLoop = async () => {
-    setTimeLoopRunning(false);
-    setTimeLoopBusy(true);
-    try {
-      const res = await resetTimeLoopApi(timeLoopStartDate, session?.idToken);
-      setTimeLoopState(res);
-    } finally {
-      setTimeLoopBusy(false);
-    }
-  };
-
-  const monitoredForecasts = allForecasts.filter((f) => f.hasNativeStation);
-  const maxDistrictRain = Math.max(
-    50,
-    ...monitoredForecasts.map((f) => f.rain6hMm || 0)
+  const [chartDistrict, setChartDistrict] = useState<string>(
+    selectedForecast.district.name || "Wayanad"
   );
+  const [chartLead, setChartLead] = useState<number>(leadTime || 12);
+  const [weatherRegime, setWeatherRegime] =
+    useState<WeatherRegimeOption>("Heavy Rainfall");
+  const [hoveredBarIdx, setHoveredBarIdx] = useState<number | null>(null);
+
+  // Monitored districts ranked by blended 6h rainfall intensity for the vertical GA-style Column Bar Chart
+  const priorityDistricts = useMemo(() => {
+    return allForecasts
+      .filter((f) => f.hasNativeStation && f.rain6hMm !== null)
+      .sort((a, b) => (b.rain6hMm || 0) - (a.rain6hMm || 0));
+  }, [allForecasts]);
+
+  const maxRain = Math.max(
+    60,
+    ...priorityDistricts.map((d) => d.rain6hMm || 0)
+  );
+
+  // Dynamic 100% stacked contribution timeline responding to District + Weather Regime + Lead Time
+  // Matches Reference Image 1 ("CONTRIBUTION TIMELINE — How the blend changes with lead time")
+  const contributionTimeline = useMemo(() => {
+    const distIdx = Math.max(0, KERALA_14_DISTRICTS.indexOf(chartDistrict));
+    const distShift = ((distIdx % 5) - 2) * 1.2;
+
+    const regimeBase: Record<
+      WeatherRegimeOption,
+      { nwp: number; ai: number; ens: number }
+    > = {
+      "Heavy Rainfall": { nwp: 27, ai: 41, ens: 32 },
+      "Extreme Rainfall": { nwp: 18, ai: 38, ens: 44 },
+      "High Wind / Gusts": { nwp: 24, ai: 44, ens: 32 },
+      "Normal Monsoon": { nwp: 31, ai: 39, ens: 30 },
+    };
+
+    const base = regimeBase[weatherRegime];
+
+    return LEAD_TICKS.map((h, i) => {
+      // As lead time increases (+1h -> +72h), NWP slightly decreases while Ensemble increases
+      const nwpRaw = Math.max(
+        10,
+        Math.round(base.nwp - i * 0.9 + distShift * 0.5)
+      );
+      const ensRaw = Math.max(
+        15,
+        Math.round(base.ens + i * 1.1 - distShift * 0.3)
+      );
+      const aiRaw = Math.max(10, 100 - nwpRaw - ensRaw);
+      return {
+        h,
+        label: `+${h}h`,
+        nwp: nwpRaw,
+        ai: aiRaw,
+        ens: ensRaw,
+      };
+    });
+  }, [chartDistrict, weatherRegime]);
+
+  // SVG dimensions for 100% Stacked Area Chart (Reference Image 1)
+  const areaW = 920;
+  const areaH = 310;
+  const aPadL = 48;
+  const aPadR = 24;
+  const aPadT = 20;
+  const aPadB = 36;
+  const aPlotW = areaW - aPadL - aPadR;
+  const aPlotH = areaH - aPadT - aPadB;
+
+  const getAX = (i: number) =>
+    aPadL + (i / (contributionTimeline.length - 1)) * aPlotW;
+  const getAY = (pct: number) => aPadT + aPlotH - (pct / 100) * aPlotH;
+
+  // Build stacked polygons: bottom = NWP (0 -> nwp), middle = AI (nwp -> nwp+ai), top = Ensemble (nwp+ai -> 100)
+  const nwpPoly = [
+    ...contributionTimeline.map((pt, i) => `${getAX(i)},${getAY(pt.nwp)}`),
+    ...contributionTimeline
+      .slice()
+      .reverse()
+      .map((_, revI) => `${getAX(contributionTimeline.length - 1 - revI)},${getAY(0)}`),
+  ].join(" ");
+
+  const aiPoly = [
+    ...contributionTimeline.map(
+      (pt, i) => `${getAX(i)},${getAY(pt.nwp + pt.ai)}`
+    ),
+    ...contributionTimeline
+      .slice()
+      .reverse()
+      .map(
+        (pt, revI) =>
+          `${getAX(contributionTimeline.length - 1 - revI)},${getAY(pt.nwp)}`
+      ),
+  ].join(" ");
+
+  const ensPoly = [
+    ...contributionTimeline.map((_, i) => `${getAX(i)},${getAY(100)}`),
+    ...contributionTimeline
+      .slice()
+      .reverse()
+      .map(
+        (pt, revI) =>
+          `${getAX(contributionTimeline.length - 1 - revI)},${getAY(
+            pt.nwp + pt.ai
+          )}`
+      ),
+  ].join(" ");
+
+  // SVG dimensions for Vertical Google Analytics-style Bar Chart
+  const barW = 920;
+  const barH = 300;
+  const bPadL = 56;
+  const bPadR = 24;
+  const bPadT = 30;
+  const bPadB = 56;
+  const bPlotW = barW - bPadL - bPadR;
+  const bPlotH = barH - bPadT - bPadB;
 
   return (
     <div className="space-y-8">
       {/* ====================================================================
-       * TOP HEADER & SUB-SECTION SWITCHER
+       * 1. HIGH-PRIORITY DISTRICTS — VERTICAL BAR CHART (GOOGLE ANALYTICS)
        * ==================================================================== */}
-      <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
-            Forecast Blending Analytics &amp; Simulation Suite
-          </span>
-          <h1 className="text-xl font-bold text-slate-900 mt-1">
-            Visualization &amp; Continuous Learning Simulators
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Explore state-wide dynamic blending charts, the Live Stream
-            Simulator, and the FOREXA TimeLoop Day-by-Day Learning Simulator
-          </p>
+      <section className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#15803D]">
+              Priority Ranking Analytics
+            </span>
+            <h2 className="text-lg font-bold text-[#14532D] mt-0.5 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              <span>High-Priority Kerala Districts (+{leadTime}h Rainfall)</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Click any district column to inspect its live forecast and track
+              priority analytics
+            </p>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#ECFDF5] border border-emerald-200 text-xs font-semibold text-[#14532D]">
+            <TrendingUp className="w-3.5 h-3.5 text-[#15803D]" />
+            <span>Google Analytics Connected · G-LXDM92KRZ6</span>
+          </div>
         </div>
 
-        {/* Clean 3-Mode Pill Switcher */}
-        <div className="inline-flex p-1.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveSection("blending")}
-            className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition ${
-              activeSection === "blending"
-                ? "bg-[#6D28D9] text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+        <div className="w-full overflow-x-auto">
+          <svg
+            viewBox={`0 0 ${barW} ${barH}`}
+            className="w-full h-auto min-w-[640px] select-none"
+            role="img"
+            aria-label="High priority districts rainfall vertical bar chart"
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>1. District Blending &amp; Priority Charts</span>
-          </button>
+            {/* Horizontal grid lines */}
+            {[0, 0.25, 0.5, 0.75, 1].map((frac, idx) => {
+              const val = Math.round(maxRain * frac);
+              const y = bPadT + bPlotH - frac * bPlotH;
+              return (
+                <g key={idx}>
+                  <line
+                    x1={bPadL}
+                    y1={y}
+                    x2={barW - bPadR}
+                    y2={y}
+                    stroke="#E2E8F0"
+                    strokeDasharray={frac === 0 ? undefined : "3 4"}
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={bPadL - 10}
+                    y={y + 4}
+                    textAnchor="end"
+                    fontSize="11"
+                    fill="#64748B"
+                    fontWeight="600"
+                  >
+                    {val} mm
+                  </text>
+                </g>
+              );
+            })}
 
-          <button
-            type="button"
-            onClick={() => setActiveSection("livestream")}
-            className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition ${
-              activeSection === "livestream"
-                ? "bg-[#6D28D9] text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Radio className="w-4 h-4" />
-            <span>2. Live Stream Simulator</span>
-          </button>
+            {/* Vertical Columns */}
+            {priorityDistricts.map((d, i) => {
+              const rain = d.rain6hMm || 0;
+              const slotW = bPlotW / Math.max(1, priorityDistricts.length);
+              const colW = Math.min(54, slotW * 0.58);
+              const cx = bPadL + slotW * i + slotW / 2;
+              const colH = Math.max(6, (rain / maxRain) * bPlotH);
+              const y = bPadT + bPlotH - colH;
+              const isHovered = hoveredBarIdx === i;
+              const isSelected =
+                d.district.name.toLowerCase() === chartDistrict.toLowerCase();
 
-          <button
-            type="button"
-            onClick={() => setActiveSection("timeloop")}
-            className={`px-4 py-2.5 rounded-xl flex items-center gap-2 transition ${
-              activeSection === "timeloop"
-                ? "bg-[#6D28D9] text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>3. FOREXA TimeLoop Simulator</span>
-          </button>
+              const barFill =
+                d.severity === "RED"
+                  ? "#DC2626"
+                  : d.severity === "ORANGE"
+                  ? "#EA580C"
+                  : "#15803D";
+
+              return (
+                <g
+                  key={d.district.name}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredBarIdx(i)}
+                  onMouseLeave={() => setHoveredBarIdx(null)}
+                  onClick={() => {
+                    setChartDistrict(d.district.name);
+                    onSelectDistrict(d.district.name);
+                    trackAnalyticsEvent("select_priority_district_bar", {
+                      district: d.district.name,
+                      rain_6h_mm: rain,
+                      severity: d.severity,
+                      lead_h: leadTime,
+                    });
+                  }}
+                >
+                  <rect
+                    x={cx - colW / 2}
+                    y={y}
+                    width={colW}
+                    height={colH}
+                    rx="7"
+                    fill={barFill}
+                    opacity={isHovered || isSelected ? 1 : 0.85}
+                    stroke={isSelected ? "#052E16" : "none"}
+                    strokeWidth={isSelected ? 2 : 0}
+                  />
+                  <text
+                    x={cx}
+                    y={y - 8}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="700"
+                    fill="#0F172A"
+                  >
+                    {rain} mm
+                  </text>
+                  <text
+                    x={cx}
+                    y={bPadT + bPlotH + 20}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight={isSelected ? "800" : "600"}
+                    fill={isSelected ? "#14532D" : "#334155"}
+                  >
+                    {d.district.name.length > 11
+                      ? `${d.district.name.slice(0, 9)}…`
+                      : d.district.name}
+                  </text>
+                  <text
+                    x={cx}
+                    y={bPadT + bPlotH + 35}
+                    textAnchor="middle"
+                    fontSize="10"
+                    fontWeight="600"
+                    fill="#64748B"
+                  >
+                    Priority #{i + 1}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
-      </div>
+      </section>
 
       {/* ====================================================================
-       * SECTION 1: STATE-WIDE DISTRICT BLENDING & PRIORITY CHARTS
+       * 2. DYNAMIC WEIGHT VISUALIZATION (MATCHES REFERENCE IMAGE 1)
+       *    FILTER BAR (DISTRICT, LEAD TIME, WEATHER REGIME — NO STATE!)
        * ==================================================================== */}
-      {activeSection === "blending" && (
-        <div className="space-y-8">
-          {/* 1A. High-Priority Districts Bar Chart (All Districts in Kerala) */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-base font-bold text-[#6D28D9]">
-                  High-Priority Districts Ranking Across Kerala (+{leadTime}h
-                  Horizon)
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Districts ranked by blended rainfall intensity and priority
-                  alert status. Click any bar to inspect that district.
-                </p>
-              </div>
-              <div className="px-3.5 py-1.5 rounded-xl bg-[#F5F3FF] text-[#6D28D9] text-xs font-semibold">
-                Unified Weights: NWP {selectedForecast.weights.nwp}% · AI{" "}
-                {selectedForecast.weights.ai}% · Ensemble{" "}
-                {selectedForecast.weights.ensemble}%
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {allForecasts.map((f) => {
-                const rain = f.rain6hMm ?? 0;
-                const widthPct = f.hasNativeStation
-                  ? Math.min(100, Math.max(6, (rain / maxDistrictRain) * 100))
-                  : 0;
-                const isHighPriority =
-                  f.hasNativeStation &&
-                  (f.severity === "RED" ||
-                    f.severity === "ORANGE" ||
-                    rain >= 30);
-                const isSelected =
-                  f.district.name === selectedForecast.district.name;
-
-                return (
-                  <div
-                    key={f.district.name}
-                    onClick={() => onSelectDistrict(f.district.name)}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition ${
-                      isSelected
-                        ? "border-[#6D28D9] bg-[#F5F3FF]/40"
-                        : "border-slate-100 hover:border-purple-200 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-full bg-[#F5F3FF] text-[#6D28D9] font-bold flex items-center justify-center text-[11px]">
-                          #{f.rank}
-                        </span>
-                        <span className="font-bold text-slate-900 text-sm">
-                          {f.district.name}
-                        </span>
-                        {isHighPriority && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#6D28D9] text-white">
-                            HIGH PRIORITY
-                          </span>
-                        )}
-                        <span className="text-slate-500">{f.eventType}</span>
-                      </div>
-
-                      <div className="font-bold text-slate-900">
-                        {f.hasNativeStation
-                          ? `${rain} mm / 6h (${f.rainRateMmH} mm/h)`
-                          : "Unmonitored in dataset"}
-                      </div>
-                    </div>
-
-                    <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
-                      {f.hasNativeStation && (
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${widthPct}%`,
-                            backgroundColor: isHighPriority
-                              ? "#6D28D9"
-                              : "#A78BFA",
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 1B. District-by-District Forecast Blending Bar Chart (NWP vs AI vs Ensemble vs Final Blend) */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-base font-bold text-[#6D28D9]">
-                  State-Wide Multi-Model Blending Comparison by District (+
-                  {leadTime}h)
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Visualizing how NWP ({selectedForecast.weights.nwp}%), AI (
-                  {selectedForecast.weights.ai}%), and Ensemble (
-                  {selectedForecast.weights.ensemble}%) combine into the Final
-                  Blended Forecast for each monitored district
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-slate-300 inline-block" />
-                  NWP
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-[#C4B5FD] inline-block" />
-                  AI
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-[#8B5CF6] inline-block" />
-                  Ensemble
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-[#6D28D9] inline-block" />
-                  Final Blend
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {monitoredForecasts.map((f) => {
-                const ind = f.modelVariablesAtHorizon;
-                const nwpVal = ind.nwp?.precip_6h_mm ?? 0;
-                const aiVal = ind.ai?.precip_6h_mm ?? 0;
-                const ensVal = ind.ensemble?.precip_6h_mm ?? 0;
-                const blendVal = f.rain6hMm ?? 0;
-                const localMax = Math.max(
-                  45,
-                  nwpVal,
-                  aiVal,
-                  ensVal,
-                  blendVal
-                );
-
-                const bars = [
-                  {
-                    label: `NWP (${f.weights.nwp}%)`,
-                    val: nwpVal,
-                    color: "#CBD5E1",
-                  },
-                  {
-                    label: `AI (${f.weights.ai}%)`,
-                    val: aiVal,
-                    color: "#C4B5FD",
-                  },
-                  {
-                    label: `Ens (${f.weights.ensemble}%)`,
-                    val: ensVal,
-                    color: "#8B5CF6",
-                  },
-                  {
-                    label: "Final Blend",
-                    val: blendVal,
-                    color: "#6D28D9",
-                    bold: true,
-                  },
-                ];
-
-                return (
-                  <div
-                    key={f.district.name}
-                    onClick={() => onSelectDistrict(f.district.name)}
-                    className="p-5 rounded-2xl border border-slate-200 hover:border-[#6D28D9] cursor-pointer transition bg-white"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-slate-900">
-                        {f.district.name}
-                      </h3>
-                      <span className="text-xs font-bold text-[#6D28D9]">
-                        {blendVal} mm
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {bars.map((b) => (
-                        <div key={b.label}>
-                          <div className="flex justify-between text-[11px] mb-1">
-                            <span
-                              className={
-                                b.bold
-                                  ? "font-bold text-[#6D28D9]"
-                                  : "text-slate-500"
-                              }
-                            >
-                              {b.label}
-                            </span>
-                            <span
-                              className={
-                                b.bold
-                                  ? "font-bold text-slate-900"
-                                  : "text-slate-600"
-                              }
-                            >
-                              {b.val} mm
-                            </span>
-                          </div>
-                          <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  (b.val / localMax) * 100
-                                )}%`,
-                                backgroundColor: b.color,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 1C. How the Blend & Dynamic Weights Change Over Lead Time (6h to 72h) for Selected District */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-base font-bold text-[#6D28D9]">
-                  How the Forecast Blend Evolves Over Lead Time (6h–72h) ·{" "}
-                  {selectedForecast.district.name}
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Horizon-by-horizon breakdown of NWP, AI, Ensemble, and Final
-                  Blended rainfall across 6h to 72h
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-semibold text-[#6D28D9]">
-                  Select District:
-                </label>
-                <select
-                  value={selectedForecast.district.name}
-                  onChange={(e) => onSelectDistrict(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800"
-                >
-                  {monitoredForecasts.map((f) => (
-                    <option key={f.district.name} value={f.district.name}>
-                      #{f.rank} {f.district.name} ({f.rain6hMm} mm)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Vertical Bar Chart across 6h..72h */}
-            <div className="grid grid-cols-6 sm:grid-cols-12 gap-3 items-end pt-4 pb-2">
-              {selectedForecast.hourlySeries.map((pt) => {
-                const seriesMax = Math.max(
-                  45,
-                  ...selectedForecast.hourlySeries.map((s) => s.blended ?? 0)
-                );
-                const hPct = Math.min(
-                  100,
-                  Math.max(8, ((pt.blended ?? 0) / seriesMax) * 100)
-                );
-                const wAtH =
-                  selectedForecast.weightsOverLeadTime.find(
-                    (w) => w.h === pt.h
-                  ) || {
-                    nwp: selectedForecast.weights.nwp,
-                    ai: selectedForecast.weights.ai,
-                    ensemble: selectedForecast.weights.ensemble,
-                  };
-
-                return (
-                  <div
-                    key={pt.h}
-                    className="flex flex-col items-center text-center"
-                  >
-                    <div className="text-[11px] font-bold text-slate-800 mb-1.5">
-                      {pt.blended ?? "—"}
-                    </div>
-                    <div className="w-full h-36 bg-slate-50 rounded-xl border border-slate-100 flex items-end p-1.5">
-                      <div
-                        className="w-full rounded-lg transition-all duration-300"
-                        style={{
-                          height: `${hPct}%`,
-                          backgroundColor:
-                            pt.h === leadTime ? "#4C1D95" : "#6D28D9",
-                        }}
-                        title={`+${pt.h}h: Blended ${pt.blended} mm (Weights: NWP ${wAtH.nwp}%, AI ${wAtH.ai}%, Ens ${wAtH.ensemble}%)`}
-                      />
-                    </div>
-                    <div className="text-xs font-bold text-[#6D28D9] mt-2">
-                      +{pt.h}h
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      E:{wAtH.ensemble}%
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ====================================================================
-       * SECTION 2: SIMULATION MODE A — LIVE STREAM SIMULATOR
-       * ==================================================================== */}
-      {activeSection === "livestream" && liveState && (
-        <div className="space-y-8">
-          {/* Top Control Bar with Clear SIMULATED LIVE DATA Badge */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#F5F3FF] text-[#6D28D9] border border-purple-200">
-                    {liveState.simulation_label || "SIMULATED LIVE DATA"}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">
-                    Minute +{liveState.tick_minute} ·{" "}
-                    {liveState.simulated_timestamp_utc}
-                  </span>
-                </div>
-                <h2 className="text-lg font-bold text-slate-900 mt-2">
-                  Live Stream Simulator · Minute-by-Minute Adaptive Blending
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Generates meteorologically coherent synthetic forecast updates
-                  and updates the trained XGBoost adaptive weighting engine in
-                  real time. Separate from baseline production API data.
-                </p>
-              </div>
-
-              {/* Start / Pause / Step / Reset Controls */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {!liveRunning ? (
-                  <button
-                    type="button"
-                    onClick={() => setLiveRunning(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white text-xs font-semibold shadow-sm transition"
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>
-                      {liveState.tick_minute > 0 ? "Resume Stream" : "Start Stream"}
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setLiveRunning(false)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-semibold shadow-sm transition"
-                  >
-                    <Pause className="w-3.5 h-3.5" />
-                    <span>Pause Stream</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => handleStepLiveStream(1)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
-                >
-                  <FastForward className="w-3.5 h-3.5 text-[#6D28D9]" />
-                  <span>Step +1 Min</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLiveFailSource((prev) => (prev === "nwp" ? null : "nwp"))
-                  }
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
-                >
-                  <WifiOff className="w-3.5 h-3.5 text-[#6D28D9]" />
-                  <span>
-                    {liveFailSource === "nwp"
-                      ? "Recover NWP Feed"
-                      : "Simulate NWP Drop"}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleResetLiveStream}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Live Weather Event Phase & Adaptive Weights Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Simulated Weather Regime Phase
-                </div>
-                <div className="text-sm font-bold text-slate-900 mt-1">
-                  {liveState.event_phase}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  NWP: {liveState.source_status?.nwp} · AI:{" "}
-                  {liveState.source_status?.ai} · Ensemble:{" "}
-                  {liveState.source_status?.ensemble}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Live Adaptive Weights ({liveState.model_version})
-                </div>
-                <div className="flex items-center justify-between text-sm font-bold text-slate-900 mt-1">
-                  <span>NWP: {liveState.unified_weights?.W_NWP_pct}%</span>
-                  <span>AI: {liveState.unified_weights?.W_AI_pct}%</span>
-                  <span className="text-[#6D28D9]">
-                    Ensemble: {liveState.unified_weights?.W_Ensemble_pct}%
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden flex mt-2">
-                  <div
-                    style={{
-                      width: `${liveState.unified_weights?.W_NWP_pct || 0}%`,
-                    }}
-                    className="bg-slate-400"
-                  />
-                  <div
-                    style={{
-                      width: `${liveState.unified_weights?.W_AI_pct || 0}%`,
-                    }}
-                    className="bg-[#8B5CF6]"
-                  />
-                  <div
-                    style={{
-                      width: `${
-                        liveState.unified_weights?.W_Ensemble_pct || 0
-                      }%`,
-                    }}
-                    className="bg-[#6D28D9]"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F5F3FF] border border-purple-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#6D28D9]">
-                    Focus District Telemetry
-                  </span>
-                  <select
-                    value={liveFocusDistrict}
-                    onChange={(e) => setLiveFocusDistrict(e.target.value)}
-                    className="px-2.5 py-1 rounded-lg border border-purple-200 bg-white text-xs font-bold text-slate-800"
-                  >
-                    {(liveState.districts || []).map((d: any) => (
-                      <option key={d.district} value={d.district}>
-                        {d.district}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {liveState.focus_district_telemetry && (
-                  <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                    <div>
-                      <span className="text-slate-500">Rain:</span>{" "}
-                      <strong className="text-slate-900">
-                        {
-                          liveState.focus_district_telemetry.blended
-                            ?.precip_6h_mm
-                        }{" "}
-                        mm
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Temp:</span>{" "}
-                      <strong className="text-slate-900">
-                        {liveState.focus_district_telemetry.blended?.temp_c}°C
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Wind:</span>{" "}
-                      <strong className="text-slate-900">
-                        {liveState.focus_district_telemetry.blended?.wind_ms}{" "}
-                        m/s
-                      </strong>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Live Stream District Cards Grid */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <h3 className="text-base font-bold text-[#6D28D9] mb-4">
-              Live Stream District Blended Outputs (Minute +
-              {liveState.tick_minute})
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {(liveState.districts || []).map((d: any) => (
-                <div
-                  key={d.district}
-                  className="p-5 rounded-2xl border border-slate-200 bg-white space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900">
-                      {d.district}
-                    </span>
-                    <span className="text-xs font-semibold text-[#6D28D9]">
-                      {d.event_type}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
-                    <div>
-                      Rain:{" "}
-                      <strong className="text-slate-900">
-                        {d.blended.precip_6h_mm} mm
-                      </strong>
-                    </div>
-                    <div>
-                      Temp:{" "}
-                      <strong className="text-slate-900">
-                        {d.blended.temp_c}°C
-                      </strong>
-                    </div>
-                    <div>
-                      Humidity:{" "}
-                      <strong className="text-slate-900">
-                        {d.blended.humidity_pct}%
-                      </strong>
-                    </div>
-                    <div>
-                      Wind:{" "}
-                      <strong className="text-slate-900">
-                        {d.blended.wind_ms} m/s
-                      </strong>
-                    </div>
-                    <div className="col-span-2">
-                      Pressure:{" "}
-                      <strong className="text-slate-900">
-                        {d.blended.pressure_hpa} hPa
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] text-slate-500 flex justify-between">
-                    <span>NWP: {d.sources.nwp.precip_6h_mm} mm</span>
-                    <span>AI: {d.sources.ai.precip_6h_mm} mm</span>
-                    <span className="font-semibold text-[#6D28D9]">
-                      Ens: {d.sources.ensemble.precip_6h_mm} mm
-                    </span>
-                  </div>
-                </div>
+      <section className="rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-3 rounded-xl border border-slate-200 bg-white">
+            <label
+              htmlFor="viz-district"
+              className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1"
+            >
+              DISTRICT
+            </label>
+            <select
+              id="viz-district"
+              value={chartDistrict}
+              onChange={(e) => {
+                setChartDistrict(e.target.value);
+                onSelectDistrict(e.target.value);
+                trackAnalyticsEvent("change_blend_district", {
+                  district: e.target.value,
+                });
+              }}
+              className="w-full text-sm font-bold text-slate-900 bg-transparent focus:outline-none cursor-pointer"
+            >
+              {KERALA_14_DISTRICTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ====================================================================
-       * SECTION 3: SIMULATION MODE B — FOREXA TIMELOOP (DAY-BY-DAY LEARNING)
-       * ==================================================================== */}
-      {activeSection === "timeloop" && timeLoopState && (
-        <div className="space-y-8">
-          {/* TimeLoop Control Header */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#F5F3FF] text-[#6D28D9] border border-purple-200">
-                    {timeLoopState.simulation_badge}
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-                    {timeLoopState.observation_badge}
-                  </span>
-                </div>
-                <h2 className="text-lg font-bold text-slate-900 mt-2">
-                  FOREXA TimeLoop — Day-by-Day Forecast Learning Simulator
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Evaluates yesterday’s forecasts against independent synthetic
-                  observations, tracks source errors, and trains/validates
-                  candidate XGBoost models without altering the original
-                  production artifact.
-                </p>
-              </div>
-
-              {/* Start / Pause / Step +1 Day / Step +3 Days / Reset Controls */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <input
-                  type="date"
-                  value={timeLoopStartDate}
-                  onChange={(e) => setTimeLoopStartDate(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700"
-                  aria-label="Simulated start date"
-                />
-
-                {!timeLoopRunning ? (
-                  <button
-                    type="button"
-                    onClick={() => setTimeLoopRunning(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white text-xs font-semibold shadow-sm transition"
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>
-                      {timeLoopState.completed_cycles > 0
-                        ? "Resume Auto-Days"
-                        : "Start TimeLoop"}
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setTimeLoopRunning(false)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-semibold shadow-sm transition"
-                  >
-                    <Pause className="w-3.5 h-3.5" />
-                    <span>Pause</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  disabled={timeLoopBusy}
-                  onClick={() => handleAdvanceTimeLoop(1)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
-                >
-                  <FastForward className="w-3.5 h-3.5 text-[#6D28D9]" />
-                  <span>Advance +1 Day</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={timeLoopBusy}
-                  onClick={() => handleAdvanceTimeLoop(3)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-purple-200 bg-[#F5F3FF] hover:bg-[#6D28D9] text-[#6D28D9] hover:text-white text-xs font-semibold transition"
-                >
-                  <Award className="w-3.5 h-3.5" />
-                  <span>+3 Days (Candidate Gate)</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={timeLoopBusy}
-                  onClick={handleResetTimeLoop}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Key Status Metrics Strip */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Simulated Date &amp; Cycles
-                </div>
-                <div className="text-base font-bold text-slate-900 mt-1">
-                  {timeLoopState.current_simulated_date} · Day{" "}
-                  {timeLoopState.completed_cycles}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Next forecast date:{" "}
-                  {timeLoopState.next_day_forecast_preview?.valid_date}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Active &amp; Previous Model Version
-                </div>
-                <div className="text-sm font-bold text-slate-900 mt-1">
-                  Active: {timeLoopState.current_model_version}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Previous: {timeLoopState.previous_model_version}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Candidate Model Status
-                </div>
-                <div className="text-sm font-bold text-slate-900 mt-1">
-                  {timeLoopState.candidate_status}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Retrains every {timeLoopState.min_cycles_for_retraining}{" "}
-                  verified days
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F5F3FF] border border-purple-200">
-                <div className="text-xs font-bold text-[#6D28D9]">
-                  Next-Day Approved Weights
-                </div>
-                <div className="text-sm font-bold text-slate-900 mt-1">
-                  NWP{" "}
-                  {
-                    timeLoopState.next_day_forecast_preview?.weights
-                      ?.W_NWP_pct
-                  }
-                  % · AI{" "}
-                  {timeLoopState.next_day_forecast_preview?.weights?.W_AI_pct}%
-                  · Ens{" "}
-                  {
-                    timeLoopState.next_day_forecast_preview?.weights
-                      ?.W_Ensemble_pct
-                  }
-                  %
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Applied to{" "}
-                  {timeLoopState.next_day_forecast_preview?.valid_date}
-                </div>
-              </div>
-            </div>
-
-            {/* Generated Performance Summary Banner */}
-            <div className="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 leading-relaxed">
-              <strong className="text-[#6D28D9]">
-                Continuous Learning Summary:{" "}
-              </strong>
-              {timeLoopState.performance_summary}
-            </div>
+            </select>
           </div>
 
-          {/* YESTERDAY'S FORECAST VS TODAY'S SYNTHETIC OBSERVATION + SOURCE-WISE ERRORS */}
-          {timeLoopState.yesterday_comparison ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
-              {/* District Comparison Table (7 cols) */}
-              <div className="lg:col-span-7 rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                  <div>
-                    <h3 className="text-base font-bold text-[#6D28D9]">
-                      Yesterday’s Forecast vs Today’s Synthetic Observation (
-                      {timeLoopState.yesterday_comparison.valid_date})
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Matched by district and valid date · All observations
-                      independently simulated
-                    </p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
-                    SYNTHETIC OBSERVATIONS
-                  </span>
-                </div>
+          <div className="p-3 rounded-xl border border-slate-200 bg-white">
+            <label
+              htmlFor="viz-lead"
+              className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1"
+            >
+              LEAD TIME
+            </label>
+            <select
+              id="viz-lead"
+              value={chartLead}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setChartLead(v);
+                trackAnalyticsEvent("change_blend_lead_time", { lead_h: v });
+              }}
+              className="w-full text-sm font-bold text-slate-900 bg-transparent focus:outline-none cursor-pointer"
+            >
+              {LEAD_TICKS.map((h) => (
+                <option key={h} value={h}>
+                  {h} {h === 1 ? "hour" : "hours"}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-[11px] font-semibold text-slate-500">
-                        <th className="py-2.5 pr-2">District</th>
-                        <th className="py-2.5 px-2">Synthetic Obs</th>
-                        <th className="py-2.5 px-2">NWP</th>
-                        <th className="py-2.5 px-2">AI</th>
-                        <th className="py-2.5 px-2">Ensemble</th>
-                        <th className="py-2.5 px-2">Final Blended</th>
-                        <th className="py-2.5 pl-2">Blended Error</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {timeLoopState.yesterday_comparison.districts.map(
-                        (r: any) => (
-                          <tr key={r.district}>
-                            <td className="py-2.5 pr-2 font-bold text-slate-900">
-                              {r.district}
-                            </td>
-                            <td className="py-2.5 px-2 font-semibold">
-                              {r.observed_rain_mm} mm
-                            </td>
-                            <td className="py-2.5 px-2 text-slate-500">
-                              {r.nwp_rain_mm} mm
-                            </td>
-                            <td className="py-2.5 px-2 text-slate-500">
-                              {r.ai_rain_mm} mm
-                            </td>
-                            <td className="py-2.5 px-2 text-slate-600">
-                              {r.ensemble_rain_mm} mm
-                            </td>
-                            <td className="py-2.5 px-2 font-bold text-[#6D28D9]">
-                              {r.blended_rain_mm} mm
-                            </td>
-                            <td className="py-2.5 pl-2 font-semibold text-slate-900">
-                              ±{r.blended_abs_err_mm} mm
-                            </td>
-                          </tr>
-                        )
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Source-Wise Error Bar Chart & Before/After Candidate Metrics (5 cols) */}
-              <div className="lg:col-span-5 rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm flex flex-col justify-between space-y-6">
-                <div>
-                  <h3 className="text-base font-bold text-[#6D28D9] mb-1">
-                    Source-Wise &amp; Blended Error Comparison
-                  </h3>
-                  <p className="text-xs text-slate-500 mb-4">
-                    MAE, RMSE, and Bias on Day{" "}
-                    {timeLoopState.completed_cycles} (
-                    {timeLoopState.yesterday_comparison.valid_date})
-                  </p>
-
-                  {(() => {
-                    const m = timeLoopState.yesterday_comparison.metrics;
-                    const maxMae = Math.max(
-                      10,
-                      m.nwp.rain_mae_mm,
-                      m.ai.rain_mae_mm,
-                      m.ensemble.rain_mae_mm,
-                      m.blended.rain_mae_mm
-                    );
-                    const rows = [
-                      {
-                        label: "NWP Forecast Error",
-                        data: m.nwp,
-                        color: "#CBD5E1",
-                      },
-                      {
-                        label: "AI Forecast Error",
-                        data: m.ai,
-                        color: "#C4B5FD",
-                      },
-                      {
-                        label: "Ensemble Forecast Error",
-                        data: m.ensemble,
-                        color: "#8B5CF6",
-                      },
-                      {
-                        label: "FOREXA Blended Error",
-                        data: m.blended,
-                        color: "#6D28D9",
-                        highlight: true,
-                      },
-                    ];
-                    return (
-                      <div className="space-y-3.5">
-                        {rows.map((item) => (
-                          <div key={item.label}>
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span
-                                className={
-                                  item.highlight
-                                    ? "font-bold text-[#6D28D9]"
-                                    : "font-medium text-slate-700"
-                                }
-                              >
-                                {item.label}
-                              </span>
-                              <span className="text-slate-600 font-semibold">
-                                MAE {item.data.rain_mae_mm} mm · RMSE{" "}
-                                {item.data.rain_rmse_mm} mm · Bias{" "}
-                                {item.data.rain_bias_mm} mm
-                              </span>
-                            </div>
-                            <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    (item.data.rain_mae_mm / maxMae) * 100
-                                  )}%`,
-                                  backgroundColor: item.color,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Before vs After Candidate Training Validation Box */}
-                {timeLoopState.before_after_metrics && (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#6D28D9]">
-                        Candidate Validation Gate (Day{" "}
-                        {timeLoopState.before_after_metrics.evaluated_on_day})
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#F5F3FF] text-[#6D28D9]">
-                        {timeLoopState.before_after_metrics.promoted
-                          ? "PROMOTED"
-                          : "REJECTED"}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                        <div className="text-[10px] font-semibold text-slate-400">
-                          Before Training (
-                          {timeLoopState.before_after_metrics.incumbent_version}
-                          )
-                        </div>
-                        <div className="font-bold text-slate-800 mt-0.5">
-                          MAE:{" "}
-                          {
-                            timeLoopState.before_after_metrics.before_training
-                              .mae
-                          }
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          RMSE:{" "}
-                          {
-                            timeLoopState.before_after_metrics.before_training
-                              .rmse
-                          }{" "}
-                          · Bias:{" "}
-                          {
-                            timeLoopState.before_after_metrics.before_training
-                              .bias
-                          }
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg bg-white border border-purple-200">
-                        <div className="text-[10px] font-semibold text-[#6D28D9]">
-                          After Training (
-                          {timeLoopState.before_after_metrics.candidate_version}
-                          )
-                        </div>
-                        <div className="font-bold text-[#6D28D9] mt-0.5">
-                          MAE:{" "}
-                          {
-                            timeLoopState.before_after_metrics.after_training
-                              .mae
-                          }
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          RMSE:{" "}
-                          {
-                            timeLoopState.before_after_metrics.after_training
-                              .rmse
-                          }{" "}
-                          · Bias:{" "}
-                          {
-                            timeLoopState.before_after_metrics.after_training
-                              .bias
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-2xl bg-white border border-slate-200/90 p-8 text-center shadow-sm">
-              <h3 className="text-base font-bold text-[#6D28D9]">
-                Ready to Start Day 1 Verification
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Click “Advance +1 Day” or “Start TimeLoop” above to advance the
-                simulated clock, generate today’s independent synthetic
-                observations, and evaluate yesterday’s forecast.
-              </p>
-            </div>
-          )}
-
-          {/* PERFORMANCE TREND OVER SIMULATED DAYS + MODEL VERSION HISTORY & ACTIVITY LOG */}
-          {timeLoopState.daily_trend &&
-            timeLoopState.daily_trend.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
-                {/* Performance Trend Chart (7 cols) */}
-                <div className="lg:col-span-7 rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-                  <h3 className="text-base font-bold text-[#6D28D9] mb-1">
-                    Model Performance Trend Over Simulated Days (Rainfall MAE)
-                  </h3>
-                  <p className="text-xs text-slate-500 mb-5">
-                    Daily 6h rainfall MAE (mm) for FOREXA Blended vs individual
-                    models across completed TimeLoop cycles
-                  </p>
-
-                  <div className="space-y-3">
-                    {timeLoopState.daily_trend.map((d: any) => {
-                      const maxErr = Math.max(15, d.nwp_rain_mae);
-                      return (
-                        <div
-                          key={d.day}
-                          className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80"
-                        >
-                          <div className="flex flex-wrap items-center justify-between text-xs mb-2">
-                            <span className="font-bold text-slate-900">
-                              Day {d.day} ({d.date}) ·{" "}
-                              <code className="text-[#6D28D9]">
-                                {d.model_version}
-                              </code>
-                            </span>
-                            <span className="text-slate-600 font-medium">
-                              Blended MAE:{" "}
-                              <strong className="text-[#6D28D9]">
-                                {d.blended_rain_mae} mm
-                              </strong>{" "}
-                              (NWP: {d.nwp_rain_mae} · AI: {d.ai_rain_mae} ·
-                              Ens: {d.ensemble_rain_mae} mm)
-                            </span>
-                          </div>
-                          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-                            <div
-                              className="h-full bg-[#6D28D9] rounded-full"
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  (d.blended_rain_mae / maxErr) * 100
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Version History & Activity Log (5 cols) */}
-                <div className="lg:col-span-5 rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm space-y-6">
-                  <div>
-                    <h3 className="text-base font-bold text-[#6D28D9] mb-3">
-                      Model Version History
-                    </h3>
-                    <div className="space-y-2.5 max-h-[180px] overflow-y-auto">
-                      {(timeLoopState.version_history || []).map(
-                        (vh: any, i: number) => (
-                          <div
-                            key={`${vh.version}-${i}`}
-                            className="p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-900">
-                                {vh.version} (Day {vh.day})
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F5F3FF] text-[#6D28D9]">
-                                {vh.status}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-600 mt-1">
-                              {vh.note}
-                            </p>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-bold text-[#6D28D9] mb-3">
-                      Learning-Cycle Activity Log
-                    </h3>
-                    <div className="space-y-2 max-h-[180px] overflow-y-auto">
-                      {(timeLoopState.activity_log || []).map(
-                        (al: any, i: number) => (
-                          <div
-                            key={`${al.day}-${i}`}
-                            className="p-3 rounded-xl border border-slate-100 bg-white text-xs text-slate-600"
-                          >
-                            <span className="font-bold text-[#6D28D9]">
-                              Day {al.day} ({al.date}):{" "}
-                            </span>
-                            <span>{al.event}</span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="p-3 rounded-xl border border-slate-200 bg-white">
+            <label
+              htmlFor="viz-regime"
+              className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1"
+            >
+              WEATHER REGIME
+            </label>
+            <select
+              id="viz-regime"
+              value={weatherRegime}
+              onChange={(e) => {
+                const r = e.target.value as WeatherRegimeOption;
+                setWeatherRegime(r);
+                trackAnalyticsEvent("change_blend_regime", { regime: r });
+              }}
+              className="w-full text-sm font-bold text-slate-900 bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="Heavy Rainfall">Heavy Rainfall</option>
+              <option value="Extreme Rainfall">Extreme Rainfall</option>
+              <option value="High Wind / Gusts">High Wind / Gusts</option>
+              <option value="Normal Monsoon">Normal Monsoon</option>
+            </select>
+          </div>
         </div>
-      )}
+      </section>
+
+      {/* CONTRIBUTION TIMELINE — 100% STACKED AREA CHART (Reference Image 1) */}
+      <section className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#15803D]">
+              CONTRIBUTION TIMELINE
+            </span>
+            <h2 className="text-xl font-bold text-[#14532D] mt-0.5 flex items-center gap-2">
+              <Layers className="w-5 h-5" />
+              <span>How the blend changes with lead time</span>
+            </h2>
+          </div>
+
+          <span className="px-3.5 py-1.5 rounded-lg bg-[#ECFDF5] border border-emerald-200 text-xs font-bold text-[#14532D]">
+            Total 100%
+          </span>
+        </div>
+
+        {/* Legend matching Reference Image 1 */}
+        <div className="flex flex-wrap items-center gap-5 text-xs font-semibold text-slate-600">
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-[#5490C4] inline-block" />
+            <span>NWP</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-[#499B79] inline-block" />
+            <span>AI model</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-[#9B7EC8] inline-block" />
+            <span>Ensemble</span>
+          </span>
+          <span className="text-slate-400 font-medium">
+            · {chartDistrict} · {weatherRegime} (Active Focus: +{chartLead}h)
+          </span>
+        </div>
+
+        <div className="w-full overflow-x-auto">
+          <svg
+            viewBox={`0 0 ${areaW} ${areaH}`}
+            className="w-full h-auto min-w-[640px] select-none"
+            role="img"
+            aria-label="How the model blend changes with lead time stacked area chart"
+          >
+            {/* Y-Axis labels */}
+            {[0, 25, 50, 75, 100].map((pct) => {
+              const y = getAY(pct);
+              return (
+                <g key={pct}>
+                  <line
+                    x1={aPadL}
+                    y1={y}
+                    x2={areaW - aPadR}
+                    y2={y}
+                    stroke="#E2E8F0"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={aPadL - 10}
+                    y={y + 4}
+                    textAnchor="end"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill="#64748B"
+                  >
+                    {pct}%
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Stacked Areas */}
+            <polygon points={ensPoly} fill="#9B7EC8" opacity="0.92" />
+            <polygon points={aiPoly} fill="#499B79" opacity="0.94" />
+            <polygon points={nwpPoly} fill="#5490C4" opacity="0.94" />
+
+            {/* Active Lead Marker Line */}
+            {contributionTimeline.map((pt, i) => {
+              const x = getAX(i);
+              const isFocus = pt.h === chartLead;
+              const nwpMidY = getAY(pt.nwp / 2);
+              const aiMidY = getAY(pt.nwp + pt.ai / 2);
+              const ensMidY = getAY(pt.nwp + pt.ai + pt.ens / 2);
+              return (
+                <g key={pt.h}>
+                  {isFocus && (
+                    <line
+                      x1={x}
+                      y1={aPadT}
+                      x2={x}
+                      y2={aPadT + aPlotH}
+                      stroke="#FFFFFF"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      opacity="0.85"
+                    />
+                  )}
+                  <text
+                    x={x}
+                    y={ensMidY + 4}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="800"
+                    fill="#FFFFFF"
+                  >
+                    {pt.ens}%
+                  </text>
+                  <text
+                    x={x}
+                    y={aiMidY + 4}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="800"
+                    fill="#FFFFFF"
+                  >
+                    {pt.ai}%
+                  </text>
+                  <text
+                    x={x}
+                    y={nwpMidY + 4}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="800"
+                    fill="#FFFFFF"
+                  >
+                    {pt.nwp}%
+                  </text>
+
+                  {/* X-Axis Lead Labels */}
+                  <text
+                    x={x}
+                    y={aPadT + aPlotH + 22}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight={isFocus ? "800" : "600"}
+                    fill={isFocus ? "#14532D" : "#475569"}
+                  >
+                    {pt.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </section>
     </div>
   );
 };

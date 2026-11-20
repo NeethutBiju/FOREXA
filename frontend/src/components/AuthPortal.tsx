@@ -14,6 +14,8 @@ import {
   Radio,
   CheckCircle2,
   AlertCircle,
+  MapPin,
+  Phone,
 } from "lucide-react";
 import {
   AccessRole,
@@ -22,6 +24,10 @@ import {
   authenticateWithGoogle,
   resetUserPassword,
   UserSession,
+  KERALA_14_DISTRICTS,
+  getStoredAssignedDistrict,
+  getStoredPrototypeMobile,
+  validateMobileNumber,
 } from "../firebase";
 
 interface AuthPortalProps {
@@ -56,6 +62,12 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [role, setRole] = useState<AccessRole>("authority");
+  const [assignedDistrict, setAssignedDistrict] = useState<string>(() =>
+    getStoredAssignedDistrict()
+  );
+  const [receiverMobile, setReceiverMobile] = useState<string>(() =>
+    getStoredPrototypeMobile()
+  );
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -68,7 +80,13 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
 
   const routeAfterLogin = (session: UserSession) => {
     onAuthenticated(session);
-    navigate(session.role === "technical" ? "/technical" : "/authorities");
+    if (session.role === "technical") {
+      navigate("/technical");
+    } else if (session.role === "district_authority") {
+      navigate("/district-authority");
+    } else {
+      navigate("/authorities");
+    }
   };
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
@@ -81,7 +99,14 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
     }
     setLoading(true);
     try {
-      const session = await signInWithEmail(email.trim(), password, role, rememberMe);
+      const session = await signInWithEmail(
+        email.trim(),
+        password,
+        role,
+        rememberMe,
+        assignedDistrict,
+        receiverMobile
+      );
       setStatusMsg("Authentication verified & logged to Cloud Firestore.");
       routeAfterLogin(session);
     } catch (err: any) {
@@ -107,13 +132,33 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
       setErrorMsg("Passwords do not match.");
       return;
     }
+    if (role === "authority" || role === "district_authority") {
+      const mobileCheck = validateMobileNumber(receiverMobile);
+      if (!mobileCheck.valid) {
+        setErrorMsg(
+          mobileCheck.error ||
+            "Please enter a valid 10-digit District Receiver Mobile Number."
+        );
+        return;
+      }
+    }
     setLoading(true);
     try {
+      const validatedMobile =
+        role === "authority" || role === "district_authority"
+          ? validateMobileNumber(receiverMobile).formatted
+          : "";
+      const regionLabel =
+        role === "district_authority"
+          ? `Kerala (${assignedDistrict} District Authority)`
+          : "Kerala (State-Wide Authority)";
       const session = await registerWithEmail(
         email.trim(),
         password,
         role,
-        "Kerala (State-Wide Authority)"
+        regionLabel,
+        assignedDistrict,
+        validatedMobile
       );
       setStatusMsg("Account created & audit record stored in Cloud Firestore.");
       routeAfterLogin(session);
@@ -127,11 +172,31 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
   const handleGoogleAuth = async () => {
     setErrorMsg(null);
     setStatusMsg(null);
+    if (
+      mode === "register" &&
+      (role === "authority" || role === "district_authority")
+    ) {
+      const mobileCheck = validateMobileNumber(receiverMobile);
+      if (!mobileCheck.valid) {
+        setErrorMsg(
+          mobileCheck.error ||
+            "Please enter a valid 10-digit District Receiver Mobile Number before registering."
+        );
+        return;
+      }
+    }
     setLoading(true);
     try {
+      const mobileCheck = validateMobileNumber(receiverMobile);
+      const regionLabel =
+        role === "district_authority"
+          ? `Kerala (${assignedDistrict} District Authority)`
+          : "Kerala (State-Wide Authority)";
       const session = await authenticateWithGoogle(
         role,
-        "Kerala (State-Wide Authority)"
+        regionLabel,
+        assignedDistrict,
+        mobileCheck.valid ? mobileCheck.formatted : ""
       );
       routeAfterLogin(session);
     } catch (err: any) {
@@ -157,11 +222,11 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#FAFAFE] text-slate-800">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F4F9F6] text-slate-800">
       {/* Top Navbar matching Screenshot 1 & 2 */}
       <header className="w-full bg-white border-b border-slate-100 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-[#6D28D9] flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 rounded-lg bg-[#14532D] flex items-center justify-center shadow-sm">
             <div className="w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-full bg-white" />
             </div>
@@ -170,8 +235,8 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
             FOREXA
           </span>
           <span className="text-slate-200">|</span>
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Atmospheric Intelligence &amp; Early Warning System
+          <span className="text-xs text-slate-500 font-semibold hidden sm:inline">
+            Adaptive &amp; Explainable Forecast System
           </span>
         </div>
 
@@ -189,8 +254,8 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
             <span>Support</span>
           </button>
 
-          <div className="flex items-center space-x-1.5 bg-[#F3E8FF] text-[#6D28D9] px-3 py-1 rounded-full text-[11px] font-bold tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#6D28D9] animate-pulse" />
+          <div className="flex items-center space-x-1.5 bg-[#ECFDF5] text-[#14532D] px-3 py-1 rounded-full text-[11px] font-bold tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#14532D] animate-pulse" />
             <span>SYSTEM ONLINE</span>
           </div>
         </div>
@@ -200,14 +265,14 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
       <main className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[440px] bg-white rounded-2xl shadow-[0_12px_40px_rgba(109,40,217,0.08)] border border-slate-100 overflow-hidden">
           {/* Top Royal Purple Accent Bar */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-[#6D28D9] via-[#7C3AED] to-[#6D28D9]" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#14532D] via-[#15803D] to-[#14532D]" />
 
           <div className="p-8">
             {/* Pill Badge */}
             <div className="flex justify-center mb-3">
-              <div className="inline-flex items-center space-x-1.5 bg-[#F3E8FF] text-[#6D28D9] px-3 py-1 rounded-full text-[11px] font-semibold">
+              <div className="inline-flex items-center space-x-1.5 bg-[#ECFDF5] text-[#14532D] px-3 py-1 rounded-full text-[11px] font-semibold">
                 <Radio className="w-3 h-3" />
-                <span>Atmospheric Intelligence &amp; Early Warning System</span>
+                <span>Adaptive &amp; Explainable Forecast System</span>
               </div>
             </div>
 
@@ -235,7 +300,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
             )}
 
             {/* Mode Switcher: Sign In vs Register */}
-            <div className="grid grid-cols-2 bg-[#F6F5FF] p-1 rounded-xl mb-5 border border-purple-100/60">
+            <div className="grid grid-cols-2 bg-[#F4F9F6] p-1 rounded-xl mb-5 border border-emerald-100/60">
               <button
                 type="button"
                 onClick={() => {
@@ -245,7 +310,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                 }}
                 className={`flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition ${
                   mode === "signin"
-                    ? "bg-white text-[#6D28D9] shadow-sm"
+                    ? "bg-white text-[#14532D] shadow-sm"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
@@ -261,7 +326,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                 }}
                 className={`flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition ${
                   mode === "register"
-                    ? "bg-white text-[#6D28D9] shadow-sm"
+                    ? "bg-white text-[#14532D] shadow-sm"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
@@ -270,35 +335,49 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
               </button>
             </div>
 
-            {/* Role Switcher: Authorities vs Technical Person */}
+            {/* Role Switcher: 3 Roles (State Authorities, District Authorities, Technical Person) */}
             <div className="mb-4">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                {mode === "signin" ? "SELECT ACCESS ROLE" : "SELECT DESIGNATED ROLE"}
+                {mode === "signin"
+                  ? "SELECT ACCESS ROLE (3 DASHBOARDS)"
+                  : "SELECT DESIGNATED ROLE"}
               </label>
-              <div className="grid grid-cols-2 bg-[#F6F5FF] p-1 rounded-xl border border-purple-100/60">
+              <div className="grid grid-cols-3 bg-[#F4F9F6] p-1 rounded-xl border border-emerald-100/60 gap-1">
                 <button
                   type="button"
                   onClick={() => setRole("authority")}
-                  className={`flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition ${
+                  className={`flex items-center justify-center space-x-1 py-2 px-1.5 rounded-lg text-[11px] font-bold transition ${
                     role === "authority"
-                      ? "bg-white text-[#6D28D9] shadow-sm"
+                      ? "bg-white text-[#14532D] shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Authorities</span>
+                  <Shield className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Authorities</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("district_authority")}
+                  className={`flex items-center justify-center space-x-1 py-2 px-1.5 rounded-lg text-[11px] font-bold transition ${
+                    role === "district_authority"
+                      ? "bg-white text-[#14532D] shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">District Auth</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRole("technical")}
-                  className={`flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition ${
+                  className={`flex items-center justify-center space-x-1 py-2 px-1.5 rounded-lg text-[11px] font-bold transition ${
                     role === "technical"
-                      ? "bg-white text-[#6D28D9] shadow-sm"
+                      ? "bg-white text-[#14532D] shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>Technical Person</span>
+                  <Users className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Technical</span>
                 </button>
               </div>
             </div>
@@ -320,6 +399,33 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
             {/* SIGN IN FORM */}
             {mode === "signin" ? (
               <form onSubmit={handleSignInSubmit} className="space-y-4">
+                {role === "district_authority" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#14532D]">
+                        DISTRICT AUTHORITY JURISDICTION
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Auto-routes priority alerts
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-[#14532D] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <select
+                        value={assignedDistrict}
+                        onChange={(e) => setAssignedDistrict(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F9F6] border border-emerald-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
+                      >
+                        {KERALA_14_DISTRICTS.map((d) => (
+                          <option key={d} value={d}>
+                            {d} District Authority
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -337,7 +443,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="officer@domain.org"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#F6F5FF] border border-purple-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white transition"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F9F6] border border-emerald-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
                     />
                   </div>
                 </div>
@@ -350,7 +456,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-[11px] font-bold text-[#6D28D9] hover:underline"
+                      className="text-[11px] font-bold text-[#14532D] hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -363,7 +469,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-10 pr-10 py-2.5 bg-[#F6F5FF] border border-purple-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white transition"
+                      className="w-full pl-10 pr-10 py-2.5 bg-[#F4F9F6] border border-emerald-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
                     />
                     <button
                       type="button"
@@ -385,7 +491,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded text-[#6D28D9] focus:ring-[#6D28D9]"
+                      className="w-3.5 h-3.5 rounded text-[#14532D] focus:ring-[#14532D]"
                     />
                     <span className="text-xs text-slate-600 font-medium">
                       Remember me
@@ -400,15 +506,42 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-[#6D28D9] hover:bg-[#5B21B6] disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/20 flex items-center justify-center space-x-2 transition"
+                  className="w-full py-3 bg-[#14532D] hover:bg-[#166534] disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 transition"
                 >
                   <span>{loading ? "Signing In..." : "Sign In"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
             ) : (
-              /* REGISTER FORM matching Screenshot 2 */
+              /* REGISTER FORM with District Selection (for District Authorities) & Prototype Receiver Mobile Number */
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                {role === "district_authority" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#14532D]">
+                        ASSIGNED KERALA DISTRICT
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Receives automated district alerts
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-[#14532D] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <select
+                        value={assignedDistrict}
+                        onChange={(e) => setAssignedDistrict(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F9F6] border border-emerald-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
+                      >
+                        {KERALA_14_DISTRICTS.map((d) => (
+                          <option key={d} value={d}>
+                            {d} District
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -426,10 +559,39 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="officer@department.gov"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#F6F5FF] border border-purple-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white transition"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F9F6] border border-emerald-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
                     />
                   </div>
                 </div>
+
+                {(role === "authority" || role === "district_authority") && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#14532D]">
+                        DISTRICT RECEIVER MOBILE NUMBER
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Used for emergency offline SMS alerts
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-[#14532D] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        required
+                        value={receiverMobile}
+                        onChange={(e) => setReceiverMobile(e.target.value)}
+                        placeholder="Enter 10-digit mobile (e.g., +91 9447XXXXXX)"
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F9F6] border border-emerald-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Used by Google Cloud Functions + AI Emergency SMS/Voice
+                      Failover whenever any district recipient is offline or
+                      unacknowledged.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -445,7 +607,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Min. 8 chars"
-                        className="w-full pl-8 pr-8 py-2.5 bg-[#F6F5FF] border border-purple-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white transition"
+                        className="w-full pl-8 pr-8 py-2.5 bg-[#F4F9F6] border border-emerald-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
                       />
                       <button
                         type="button"
@@ -474,7 +636,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Re-enter"
-                        className="w-full pl-8 pr-8 py-2.5 bg-[#F6F5FF] border border-purple-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white transition"
+                        className="w-full pl-8 pr-8 py-2.5 bg-[#F4F9F6] border border-emerald-100 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white transition"
                       />
                       <button
                         type="button"
@@ -496,7 +658,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-[#6D28D9] hover:bg-[#5B21B6] disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/20 flex items-center justify-center space-x-2 transition"
+                  className="w-full py-3 bg-[#14532D] hover:bg-[#166534] disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 transition"
                 >
                   <span>{loading ? "Registering..." : "Register Account"}</span>
                   <UserPlus className="w-4 h-4" />
@@ -554,7 +716,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                   <button
                     type="button"
                     onClick={() => setMode("register")}
-                    className="font-bold text-[#6D28D9] hover:underline"
+                    className="font-bold text-[#14532D] hover:underline"
                   >
                     Register
                   </button>
@@ -565,7 +727,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
                   <button
                     type="button"
                     onClick={() => setMode("signin")}
-                    className="font-bold text-[#6D28D9] hover:underline"
+                    className="font-bold text-[#14532D] hover:underline"
                   >
                     Sign In
                   </button>
@@ -576,7 +738,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
             {/* Card Footer Security Badges */}
             <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1.5">
               <div className="flex items-center justify-center space-x-1.5 text-[10px] font-bold text-slate-500">
-                <Lock className="w-3 h-3 text-[#6D28D9]" />
+                <Lock className="w-3 h-3 text-[#14532D]" />
                 <span>Protected by TLS 1.3 256-bit encryption</span>
                 <span>•</span>
                 <span>Role-verified access</span>
@@ -596,7 +758,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
       {/* Bottom Footer Bar */}
       <footer className="w-full px-6 py-3 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 bg-white">
         <span className="font-semibold text-slate-500">
-          FOREXA | Atmospheric Intelligence System
+          FOREXA | Adaptive &amp; Explainable Forecast System
         </span>
         <span className="flex items-center space-x-1">
           <Shield className="w-3.5 h-3.5 text-slate-400" />

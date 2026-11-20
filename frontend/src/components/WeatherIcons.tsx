@@ -122,7 +122,7 @@ export const MiniSparkline: React.FC<{
   const width = 56;
   const height = 22;
   const maxVal = Math.max(40, ...validSeries.map((s) => s.blended || 0));
-  const strokeColor = "#6D28D9";
+  const strokeColor = "#14532D";
 
   const points = validSeries.map((pt, idx) => {
     const x = (idx / Math.max(1, validSeries.length - 1)) * (width - 6) + 3;
@@ -154,7 +154,7 @@ export const MiniSparkline: React.FC<{
           cx={activePt.x}
           cy={activePt.y}
           r="2.6"
-          fill="#6D28D9"
+          fill="#14532D"
           stroke="#FFFFFF"
           strokeWidth="1"
         />

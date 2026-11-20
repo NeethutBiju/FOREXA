@@ -94,10 +94,10 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
   if (!isAdminUnlocked && !session) {
     return (
       <div className="max-w-lg mx-auto my-10 rounded-2xl bg-white border border-slate-200 p-8 text-center shadow-sm">
-        <div className="w-12 h-12 rounded-2xl bg-[#F5F3FF] text-[#6D28D9] flex items-center justify-center mx-auto mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#ECFDF5] text-[#14532D] flex items-center justify-center mx-auto mb-4">
           <Lock className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-bold text-[#6D28D9]">
+        <h2 className="text-xl font-bold text-[#14532D]">
           FOREXA Control Room Access
         </h2>
         <p className="text-xs text-slate-500 mt-2 leading-relaxed">
@@ -110,7 +110,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
           <button
             type="button"
             onClick={onUnlockAdmin}
-            className="w-full py-3 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-[#14532D] hover:bg-[#052E16] text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
           >
             <Shield className="w-4 h-4" />
             <span>Unlock Technical Control Room</span>
@@ -119,9 +119,9 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
           <button
             type="button"
             onClick={onNavigateLogin}
-            className="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 font-semibold text-xs transition flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 font-semibold text-xs transition flex items-center justify-center gap-2"
           >
-            <LogIn className="w-4 h-4 text-[#6D28D9]" />
+            <LogIn className="w-4 h-4 text-[#14532D]" />
             <span>Open Auth Portal (/login)</span>
           </button>
         </div>
@@ -220,14 +220,14 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
           <div>
             <div className="flex items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="text-base font-bold text-[#6D28D9]">
+                <h3 className="text-base font-bold text-[#14532D]">
                   Operational Guidance
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Apply meteorologist directives to the next forecast blend
                 </p>
               </div>
-              <Terminal className="w-5 h-5 text-[#6D28D9]" />
+              <Terminal className="w-5 h-5 text-[#14532D]" />
             </div>
 
             <form onSubmit={handleSubmitGuidance} className="space-y-4">
@@ -240,7 +240,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 text-xs text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:bg-white"
+                  className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 text-xs text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#14532D] focus:bg-white"
                 />
               </div>
 
@@ -300,7 +300,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[#14532D] hover:bg-[#052E16] text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Apply to Next Blend</span>
@@ -317,12 +317,12 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                 </span>
               </div>
             ) : (
-              <div className="p-4 rounded-xl border border-purple-200 bg-[#F5F3FF] text-slate-800 text-xs space-y-1.5">
+              <div className="p-4 rounded-xl border border-emerald-200 bg-[#ECFDF5] text-slate-800 text-xs space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#6D28D9]">
+                  <span className="font-bold text-[#14532D]">
                     Active Directive
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#6D28D9] text-white">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#14532D] text-white">
                     Active · {activeGuidance.priority}
                   </span>
                 </div>
@@ -343,7 +343,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="text-base font-bold text-[#6D28D9]">
+                <h3 className="text-base font-bold text-[#14532D]">
                   Model API Failure Simulator
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -351,8 +351,8 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                 </p>
               </div>
 
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F5F3FF] text-[#6D28D9] border border-purple-200">
-                <span className="w-2 h-2 rounded-full bg-[#6D28D9]" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#14532D] border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-[#14532D]" />
                 <span>{onlineCount}/3 online</span>
               </span>
             </div>
@@ -373,7 +373,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                   }}
                   className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between gap-3 ${
                     api.online
-                      ? "bg-white border-slate-200 hover:border-[#6D28D9]"
+                      ? "bg-white border-slate-200 hover:border-[#14532D]"
                       : "bg-slate-50 border-slate-200 text-slate-500"
                   }`}
                 >
@@ -381,7 +381,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                     <div
                       className={`p-2.5 rounded-xl ${
                         api.online
-                          ? "bg-[#F5F3FF] text-[#6D28D9]"
+                          ? "bg-[#ECFDF5] text-[#14532D]"
                           : "bg-slate-200 text-slate-500"
                       }`}
                     >
@@ -399,7 +399,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                         <span
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             api.online
-                              ? "bg-[#F5F3FF] text-[#6D28D9]"
+                              ? "bg-[#ECFDF5] text-[#14532D]"
                               : "bg-slate-200 text-slate-600"
                           }`}
                         >
@@ -414,7 +414,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
 
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-sm font-bold text-[#6D28D9]">
+                      <div className="text-sm font-bold text-[#14532D]">
                         {api.weightPct}%
                       </div>
                       <div className="text-[10px] text-slate-400">Weight</div>
@@ -422,7 +422,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
 
                     <div
                       className={`w-11 h-6 rounded-full p-0.5 transition ${
-                        api.online ? "bg-[#6D28D9]" : "bg-slate-300"
+                        api.online ? "bg-[#14532D]" : "bg-slate-300"
                       }`}
                     >
                       <div
@@ -441,18 +441,18 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
             {onlineCount === 3 ? (
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#6D28D9]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#14532D]" />
                   <span>Normal three-source blend (NWP + AI + Ensemble)</span>
                 </span>
-                <span className="text-[#6D28D9]">100% Weight Integrity</span>
+                <span className="text-[#14532D]">100% Weight Integrity</span>
               </div>
             ) : onlineCount > 0 ? (
-              <div className="p-4 rounded-xl border border-purple-200 bg-[#F5F3FF] text-slate-800 text-xs font-semibold flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-emerald-200 bg-[#ECFDF5] text-slate-800 text-xs font-semibold flex items-center justify-between">
                 <span>
                   {offlineNames.join(" & ")} offline · blend redistributed
                   across remaining {onlineCount} source(s)
                 </span>
-                <span className="text-[#6D28D9]">Failover Active</span>
+                <span className="text-[#14532D]">Failover Active</span>
               </div>
             ) : (
               <div className="p-4 rounded-xl border border-slate-300 bg-slate-100 text-slate-800 text-xs font-semibold flex items-center justify-between">
@@ -468,7 +468,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
       <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-base font-bold text-[#6D28D9]">
+            <h3 className="text-base font-bold text-[#14532D]">
               Backend Failure-Resilience Diagnostic Runner
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -481,7 +481,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               type="button"
               disabled={diagLoading}
               onClick={() => handleRunBackendDiagnostic(["nwp"], false)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 text-xs font-semibold transition"
             >
               Test NWP Offline
             </button>
@@ -489,7 +489,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               type="button"
               disabled={diagLoading}
               onClick={() => handleRunBackendDiagnostic(["ai"], false)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 text-xs font-semibold transition"
             >
               Test AI Offline
             </button>
@@ -497,7 +497,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               type="button"
               disabled={diagLoading}
               onClick={() => handleRunBackendDiagnostic(["ensemble"], false)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 text-xs font-semibold transition"
             >
               Test Ensemble Offline
             </button>
@@ -505,7 +505,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               type="button"
               disabled={diagLoading}
               onClick={() => handleRunBackendDiagnostic([], true)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 text-xs font-semibold transition"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 text-xs font-semibold transition"
             >
               Test Invalid Values
             </button>
@@ -515,7 +515,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               onClick={() =>
                 handleRunBackendDiagnostic(["nwp", "ai", "ensemble"], false)
               }
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-[#6D28D9] text-slate-700 hover:text-white text-xs font-semibold transition"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-[#14532D] text-slate-700 hover:text-white text-xs font-semibold transition"
             >
               Test All 3 Offline
             </button>
@@ -525,7 +525,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
         {failoverDiagResult && (
           <div className="p-5 rounded-xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-slate-700">
             <div>
-              <div className="font-bold text-[#6D28D9] mb-1.5">
+              <div className="font-bold text-[#14532D] mb-1.5">
                 Before Failure ({failoverDiagResult.district} +
                 {failoverDiagResult.lead_h}h)
               </div>
@@ -563,7 +563,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
             </div>
 
             <div>
-              <div className="font-bold text-[#6D28D9] mb-1.5">
+              <div className="font-bold text-[#14532D] mb-1.5">
                 After Failure (
                 {failoverDiagResult.offline_sources?.join(", ") ||
                   "Invalid Value Sanitized"}
@@ -604,97 +604,9 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
         )}
       </div>
 
-      {/* CONTINUOUS LEARNING FEEDBACK LEDGER */}
-      <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h3 className="text-base font-bold text-[#6D28D9]">
-              Forecast Verification &amp; Continuous Learning Ledger
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Matched reference observations, source errors, and drift status
-            </p>
-          </div>
-
-          <button
-            type="button"
-            disabled={clLoading}
-            onClick={handleRunContinuousLearning}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#4C1D95] text-white text-xs font-semibold shadow-sm transition"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${clLoading ? "animate-spin" : ""}`}
-            />
-            <span>
-              {clLoading
-                ? "Verifying observations..."
-                : "Verify Matured Forecasts & Check Drift"}
-            </span>
-          </button>
-        </div>
-
-        {clResult && (
-          <div className="mb-4 p-4 rounded-xl bg-[#F5F3FF] border border-purple-200 text-slate-800 text-xs font-medium">
-            <strong className="text-[#6D28D9]">Verified: </strong>
-            {clResult.reason} (7d/90d drift ratio:{" "}
-            {clResult.drift_ratio_7d_vs_90d} · Active version:{" "}
-            {clResult.active_version})
-          </div>
-        )}
-
-        <div className="overflow-x-auto max-h-[260px]">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-[11px] font-semibold text-slate-500">
-                <th className="py-2.5 pr-2">Forecast ID</th>
-                <th className="py-2.5 px-2">District &amp; Lead</th>
-                <th className="py-2.5 px-2">Valid Time</th>
-                <th className="py-2.5 px-2">Unified Weights</th>
-                <th className="py-2.5 px-2">Blended vs Obs (6h Rain)</th>
-                <th className="py-2.5 px-2">Source Errors (NWP / AI / Ens)</th>
-                <th className="py-2.5 pl-2">Blended Error</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {feedbackLedger.slice(0, 12).map((row) => (
-                <tr key={row.forecast_id}>
-                  <td className="py-2.5 pr-2 font-mono text-[11px] font-medium">
-                    {row.forecast_id}
-                  </td>
-                  <td className="py-2.5 px-2 font-semibold text-slate-900">
-                    {row.district} (+{row.lead_h}h)
-                  </td>
-                  <td className="py-2.5 px-2 text-slate-500">
-                    {row.valid_time}
-                  </td>
-                  <td className="py-2.5 px-2">
-                    N {Math.round((row.adaptive_weights?.W_NWP || 0) * 100)}% ·
-                    AI {Math.round((row.adaptive_weights?.W_AI || 0) * 100)}% ·
-                    E{" "}
-                    {Math.round((row.adaptive_weights?.W_Ensemble || 0) * 100)}%
-                  </td>
-                  <td className="py-2.5 px-2 font-medium">
-                    {row.final_blended_forecast?.precip_6h_mm ?? "—"} mm vs{" "}
-                    {row.reference_observation?.precip_6h_mm ?? "—"} mm
-                  </td>
-                  <td className="py-2.5 px-2 text-slate-500">
-                    {row.source_errors?.nwp?.precip_6h_mm ?? "—"} /{" "}
-                    {row.source_errors?.ai?.precip_6h_mm ?? "—"} /{" "}
-                    {row.source_errors?.ensemble?.precip_6h_mm ?? "—"} mm
-                  </td>
-                  <td className="py-2.5 pl-2 font-bold text-[#6D28D9]">
-                    ±{row.blended_error?.precip_6h_mm ?? "—"} mm
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* 5.3 APPLIED GUIDANCE LOG */}
       <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-        <h3 className="text-base font-bold text-[#6D28D9] mb-3">
+        <h3 className="text-base font-bold text-[#14532D] mb-3">
           Applied Guidance Log ({guidanceLog.length})
         </h3>
 
@@ -711,10 +623,10 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               >
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-[#6D28D9]">
+                    <span className="font-semibold text-[#14532D]">
                       {item.timestamp}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F5F3FF] text-[#6D28D9]">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ECFDF5] text-[#14532D]">
                       {item.priority}
                     </span>
                     <span className="text-slate-500">
@@ -727,9 +639,9 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
                 <button
                   type="button"
                   onClick={() => onRevertGuidance(item.id)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-[#F5F3FF] text-slate-700 font-semibold text-xs transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-[#ECFDF5] text-slate-700 font-semibold text-xs transition"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-[#6D28D9]" />
+                  <RotateCcw className="w-3.5 h-3.5 text-[#14532D]" />
                   <span>Revert</span>
                 </button>
               </div>
@@ -741,7 +653,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
       {/* 5.4 SYSTEM STATUS STRIP */}
       <div className="rounded-2xl bg-white border border-slate-200/90 px-6 py-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 shadow-sm">
         <div className="flex items-center gap-2 font-semibold text-slate-800">
-          <Activity className="w-4 h-4 text-[#6D28D9]" />
+          <Activity className="w-4 h-4 text-[#14532D]" />
           <span>
             System Status: {onlineCount}/3 Forecast Streams Healthy · Model:{" "}
             {selectedForecast.modelVersion}
