@@ -1476,19 +1476,17 @@ export const ForecastIntelligenceDashboard: React.FC<
                                 role: "authority",
                                 token: session?.idToken,
                               });
-                              if (res?.recipient_is_offline || res?.triggered_sms_failover) {
-                                const smsText =
-                                  res?.sms_body ||
-                                  `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h) onset +${leadTime}h.`;
-                                triggerNativeOfflineSms(check.formatted, smsText);
-                                showToast(
-                                  `${selectedForecast.district.name} District Authority is OFFLINE · Triggered SMS to ${check.formatted}!`
-                                );
-                              } else {
-                                showToast(
-                                  `Final Official Report & Alert delivered online to ${selectedForecast.district.name} District Authority Dashboard!`
-                                );
-                              }
+                              const smsText =
+                                res?.sms_body ||
+                                `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h, Wind ${selectedForecast.currentPoint.windMs ?? "—"}m/s) onset +${leadTime}h. Official report dispatched — activate district emergency protocol.`;
+                              // When online: sends BOTH full official report to that District Authority Dashboard AND SMS!
+                              // When offline: sends SMS via cellular SIM!
+                              triggerNativeOfflineSms(check.formatted, smsText);
+                              showToast(
+                                browserOnline
+                                  ? `Final Official Report sent to ${selectedForecast.district.name} District Authority Dashboard & SMS triggered to ${check.formatted}!`
+                                  : `Offline Mode · Emergency SMS triggered to ${check.formatted} for ${selectedForecast.district.name}!`
+                              );
                             } finally {
                               setDispatchingReport(false);
                             }

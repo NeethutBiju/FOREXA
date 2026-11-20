@@ -1,5 +1,9 @@
 import districtsData from "../data/districts.json";
 import trainedSnapshot from "../data/trainedModel2025Snapshot.json";
+import {
+  loadDistrictDispatchFromFirestore,
+  saveDistrictDispatchToFirestore,
+} from "../firebase";
 
 export const INITIAL_2025_TRAINED_SNAPSHOT = trainedSnapshot as any;
 
@@ -1539,19 +1543,53 @@ export async function fetchDistrictDispatchStateApi(params: {
   q.set("district", params.district);
   q.set("lead_h", String(params.leadH));
   if (params.season) q.set("season", params.season);
+
+  let backendData: any = null;
   try {
-    const data = await apiFetchJson(`/district-dispatch/state?${q.toString()}`, {
+    backendData = await apiFetchJson(`/district-dispatch/state?${q.toString()}`, {
       headers: {
         "Content-Type": "application/json",
         "X-Forexa-Role": params.role,
         ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
       },
     });
-    saveOfflineDispatchCache(params.district, data);
-    return data;
   } catch {
-    return buildLocalFallbackDispatchState(params.district, params.leadH);
+    backendData = null;
   }
+
+  // If backend already has an official dispatch for this district, cache & return it
+  if (backendData?.has_official_dispatch && backendData?.district_alert) {
+    saveOfflineDispatchCache(params.district, backendData);
+    return backendData;
+  }
+
+  // Check Cloud Firestore (works across devices & Cloud Run instances!)
+  const fsData = await loadDistrictDispatchFromFirestore(params.district);
+  if (fsData?.has_official_dispatch && fsData?.district_alert) {
+    const merged = {
+      ...(backendData || {}),
+      ...fsData,
+      has_official_dispatch: true,
+    };
+    saveOfflineDispatchCache(params.district, merged);
+    return merged;
+  }
+
+  // Check local browser offline cache
+  const cached = loadOfflineDispatchCache()[params.district];
+  if (cached?.has_official_dispatch && cached?.district_alert) {
+    return cached;
+  }
+
+  // Otherwise return clean standby state (no active dispatch yet)
+  return (
+    backendData || {
+      ...buildLocalFallbackDispatchState(params.district, params.leadH),
+      has_official_dispatch: false,
+      district_alert: null,
+      district_final_report: null,
+    }
+  );
 }
 
 export async function registerPrototypeMobileApi(payload: {
@@ -1675,8 +1713,9 @@ export async function dispatchFinalDistrictReportApi(payload: {
   role: "authority" | "district_authority" | "technical";
   token?: string;
 }) {
+  let res: any = null;
   try {
-    return await apiFetchJson(`/district-dispatch/send-report`, {
+    res = await apiFetchJson(`/district-dispatch/send-report`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1702,14 +1741,30 @@ export async function dispatchFinalDistrictReportApi(payload: {
         ...(local.district_final_report.mandatory_directives || []),
       ];
     }
-    saveOfflineDispatchCache(payload.district, local);
-    return {
+    res = {
       dispatched: true,
       district: payload.district,
       report: local.district_final_report,
       alert: local.district_alert,
     };
   }
+
+  // Persist official dispatch into BOTH localStorage and Cloud Firestore so District Authority
+  // immediately sees the official alert, View Report, and Download button on any device!
+  const mobile =
+    localStorage.getItem("forexa_prototype_receiver_mobile") || "";
+  const persistedState = {
+    selected_district: payload.district,
+    has_official_dispatch: true,
+    prototype_receiver_mobile: mobile,
+    district_alert: res?.alert,
+    district_final_report: res?.report,
+    last_synced_utc: new Date().toISOString(),
+  };
+  saveOfflineDispatchCache(payload.district, persistedState);
+  await saveDistrictDispatchToFirestore(payload.district, persistedState);
+
+  return res;
 }
 
 export async function acknowledgeDistrictAlertApi(payload: {
@@ -1719,8 +1774,10 @@ export async function acknowledgeDistrictAlertApi(payload: {
   role: "authority" | "district_authority" | "technical";
   token?: string;
 }) {
+  const nowIso = new Date().toISOString();
+  let res: any = null;
   try {
-    return await apiFetchJson(`/district-dispatch/acknowledge`, {
+    res = await apiFetchJson(`/district-dispatch/acknowledge`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1734,15 +1791,19 @@ export async function acknowledgeDistrictAlertApi(payload: {
       }),
     });
   } catch {
-    const local = buildLocalFallbackDispatchState(payload.district, 24);
-    const nowIso = new Date().toISOString();
-    local.district_alert.ack_status = "ACKNOWLEDGED";
-    local.district_alert.delivery_status = "ACKNOWLEDGED";
-    local.district_alert.acknowledged_by = payload.acknowledged_by;
-    local.district_alert.acknowledged_at = nowIso;
-    local.district_final_report.ack_status = "ACKNOWLEDGED";
-    saveOfflineDispatchCache(payload.district, local);
-    return {
+    const local =
+      loadOfflineDispatchCache()[payload.district] ||
+      buildLocalFallbackDispatchState(payload.district, 24);
+    if (local.district_alert) {
+      local.district_alert.ack_status = "ACKNOWLEDGED";
+      local.district_alert.delivery_status = "ACKNOWLEDGED";
+      local.district_alert.acknowledged_by = payload.acknowledged_by;
+      local.district_alert.acknowledged_at = nowIso;
+    }
+    if (local.district_final_report) {
+      local.district_final_report.ack_status = "ACKNOWLEDGED";
+    }
+    res = {
       acknowledged: true,
       district: payload.district,
       acknowledged_at: nowIso,
@@ -1750,6 +1811,18 @@ export async function acknowledgeDistrictAlertApi(payload: {
       district_final_report: local.district_final_report,
     };
   }
+
+  const cached = loadOfflineDispatchCache()[payload.district] || {};
+  const updated = {
+    ...cached,
+    has_official_dispatch: true,
+    district_alert: res?.district_alert || cached.district_alert,
+    district_final_report:
+      res?.district_final_report || cached.district_final_report,
+  };
+  saveOfflineDispatchCache(payload.district, updated);
+  await saveDistrictDispatchToFirestore(payload.district, updated);
+  return res;
 }
 
 export async function escalateUnacknowledgedTimeoutApi(payload: {

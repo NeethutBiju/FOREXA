@@ -429,6 +429,44 @@ export async function sendSystemAlertNotification(
   }
 }
 
+export async function saveDistrictDispatchToFirestore(
+  district: string,
+  payload: Record<string, any>
+): Promise<boolean> {
+  try {
+    const ref = doc(db, "district_dispatches", district.toLowerCase());
+    await setDoc(
+      ref,
+      {
+        ...payload,
+        district,
+        has_official_dispatch: true,
+        updated_at_iso: new Date().toISOString(),
+        updated_at: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function loadDistrictDispatchFromFirestore(
+  district: string
+): Promise<Record<string, any> | null> {
+  try {
+    const ref = doc(db, "district_dispatches", district.toLowerCase());
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      return snap.data() as Record<string, any>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function triggerNativeOfflineSms(
   mobile: string,
   message: string
