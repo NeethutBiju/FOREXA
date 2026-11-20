@@ -1,0 +1,331 @@
+{
+  "observations": {
+    "n_rows": 58432,
+    "source_type": "observations",
+    "missing_values": {},
+    "optional_variables_present": {
+      "wind_dir_deg": false,
+      "wind_gust_ms": false,
+      "cloud_cover_pct": true
+    },
+    "duplicates": 0,
+    "invalid_timestamps": 0,
+    "unknown_locations": [],
+    "out_of_range": {},
+    "time_coverage": {
+      "start": "2020-12-31 18:30:00+00:00",
+      "end": "2025-12-31 12:30:00+00:00"
+    },
+    "districts_present": [
+      "Alappuzha",
+      "Ernakulam",
+      "Idukki",
+      "Kozhikode",
+      "Palakkad",
+      "Thiruvananthapuram",
+      "Thrissur",
+      "Wayanad"
+    ],
+    "districts_missing": [
+      "Kollam",
+      "Pathanamthitta",
+      "Kottayam",
+      "Malappuram",
+      "Kannur",
+      "Kasaragod"
+    ],
+    "split_counts": {
+      "train": 35048,
+      "val": 11712,
+      "test": 11672
+    },
+    "extreme_event_distribution": {
+      "NORMAL_WEATHER": 49194,
+      "THUNDERSTORM_SQUALL": 4023,
+      "HEAVY_MONSOON_SURGE": 2826,
+      "EXTREME_RAINFALL": 2327,
+      "HIGH_WIND_CYCLONIC": 62
+    },
+    "missing_6h_timesteps": 0,
+    "flagged_rows": 0,
+    "clean_rows": 58432,
+    "status": "PASSED",
+    "extreme_events_catalog_summary": {
+      "total_observations": 58432,
+      "total_extreme_events": 9238,
+      "extreme_event_rate_pct": 15.81,
+      "counts_by_event_type": {
+        "NORMAL_WEATHER": 49194,
+        "THUNDERSTORM_SQUALL": 4023,
+        "HEAVY_MONSOON_SURGE": 2826,
+        "EXTREME_RAINFALL": 2327,
+        "HIGH_WIND_CYCLONIC": 62
+      },
+      "counts_by_district_and_type": {
+        "Alappuzha": {
+          "EXTREME_RAINFALL": 259,
+          "HEAVY_MONSOON_SURGE": 473,
+          "HIGH_WIND_CYCLONIC": 3,
+          "THUNDERSTORM_SQUALL": 381
+        },
+        "Ernakulam": {
+          "EXTREME_RAINFALL": 263,
+          "HEAVY_MONSOON_SURGE": 382,
+          "HIGH_WIND_CYCLONIC": 0,
+          "THUNDERSTORM_SQUALL": 479
+        },
+        "Idukki": {
+          "EXTREME_RAINFALL": 492,
+          "HEAVY_MONSOON_SURGE": 262,
+          "HIGH_WIND_CYCLONIC": 21,
+          "THUNDERSTORM_SQUALL": 875
+        },
+        "Kozhikode": {
+          "EXTREME_RAINFALL": 358,
+          "HEAVY_MONSOON_SURGE": 336,
+          "HIGH_WIND_CYCLONIC": 9,
+          "THUNDERSTORM_SQUALL": 574
+        },
+        "Palakkad": {
+          "EXTREME_RAINFALL": 88,
+          "HEAVY_MONSOON_SURGE": 53,
+          "HIGH_WIND_CYCLONIC": 18,
+          "THUNDERSTORM_SQUALL": 529
+        },
+        "Thiruvananthapuram": {
+          "EXTREME_RAINFALL": 185,
+          "HEAVY_MONSOON_SURGE": 396,
+          "HIGH_WIND_CYCLONIC": 1,
+          "THUNDERSTORM_SQUALL": 276
+        },
+        "Thrissur": {
+          "EXTREME_RAINFALL": 281,
+          "HEAVY_MONSOON_SURGE": 548,
+          "HIGH_WIND_CYCLONIC": 3,
+          "THUNDERSTORM_SQUALL": 281
+        },
+        "Wayanad": {
+          "EXTREME_RAINFALL": 401,
+          "HEAVY_MONSOON_SURGE": 376,
+          "HIGH_WIND_CYCLONIC": 7,
+          "THUNDERSTORM_SQUALL": 628
+        }
+      }
+    },
+    "transform_notes": [
+      "Converted obs_wind_kmh (km/h) -> wind_ms (m/s)"
+    ],
+    "provenance": {
+      "file": "kerala_actual_observations_2021_2025.csv",
+      "run_id": "8ffc599d32f2",
+      "uploaded_by": "bootstrap",
+      "ingested_at": "2026-11-20T13:20:45.774724+00:00",
+      "synthetic": true
+    }
+  },
+  "nwp": {
+    "n_rows": 116864,
+    "source_type": "nwp",
+    "missing_values": {},
+    "optional_variables_present": {
+      "wind_dir_deg": false,
+      "wind_gust_ms": false,
+      "cloud_cover_pct": false
+    },
+    "duplicates": 0,
+    "invalid_timestamps": 0,
+    "unknown_locations": [],
+    "out_of_range": {},
+    "time_coverage": {
+      "start": "2020-12-31 18:30:00+00:00",
+      "end": "2025-12-31 12:30:00+00:00"
+    },
+    "districts_present": [
+      "Alappuzha",
+      "Ernakulam",
+      "Idukki",
+      "Kozhikode",
+      "Palakkad",
+      "Thiruvananthapuram",
+      "Thrissur",
+      "Wayanad"
+    ],
+    "districts_missing": [
+      "Kollam",
+      "Pathanamthitta",
+      "Kottayam",
+      "Malappuram",
+      "Kannur",
+      "Kasaragod"
+    ],
+    "split_counts": {
+      "train": 70224,
+      "val": 23424,
+      "test": 23216
+    },
+    "extreme_event_distribution": {
+      "NORMAL_WEATHER": 97359,
+      "THUNDERSTORM_SQUALL": 8877,
+      "EXTREME_RAINFALL": 5275,
+      "HEAVY_MONSOON_SURGE": 5066,
+      "HIGH_WIND_CYCLONIC": 287
+    },
+    "lead_times": [
+      24,
+      72
+    ],
+    "init_cycles": 7312,
+    "missing_6h_timesteps": 0,
+    "flagged_rows": 0,
+    "clean_rows": 116864,
+    "status": "PASSED",
+    "transform_notes": [
+      "Dropped target-leakage columns: ['weather_condition_actual']",
+      "Converted pred_wind_kmh (km/h) -> wind_ms (m/s)"
+    ],
+    "provenance": {
+      "file": "kerala_gfs_2021_2025.csv",
+      "run_id": "a50264c13e3c",
+      "uploaded_by": "bootstrap",
+      "ingested_at": "2026-11-20T13:20:47.837384+00:00",
+      "synthetic": true
+    }
+  },
+  "ai": {
+    "n_rows": 116864,
+    "source_type": "ai",
+    "missing_values": {},
+    "optional_variables_present": {
+      "wind_dir_deg": false,
+      "wind_gust_ms": false,
+      "cloud_cover_pct": false
+    },
+    "duplicates": 0,
+    "invalid_timestamps": 0,
+    "unknown_locations": [],
+    "out_of_range": {},
+    "time_coverage": {
+      "start": "2020-12-31 18:30:00+00:00",
+      "end": "2025-12-31 12:30:00+00:00"
+    },
+    "districts_present": [
+      "Alappuzha",
+      "Ernakulam",
+      "Idukki",
+      "Kozhikode",
+      "Palakkad",
+      "Thiruvananthapuram",
+      "Thrissur",
+      "Wayanad"
+    ],
+    "districts_missing": [
+      "Kollam",
+      "Pathanamthitta",
+      "Kottayam",
+      "Malappuram",
+      "Kannur",
+      "Kasaragod"
+    ],
+    "split_counts": {
+      "train": 70224,
+      "val": 23424,
+      "test": 23216
+    },
+    "extreme_event_distribution": {
+      "NORMAL_WEATHER": 100778,
+      "THUNDERSTORM_SQUALL": 6653,
+      "HEAVY_MONSOON_SURGE": 6475,
+      "EXTREME_RAINFALL": 2713,
+      "HIGH_WIND_CYCLONIC": 245
+    },
+    "lead_times": [
+      24,
+      72
+    ],
+    "init_cycles": 7312,
+    "missing_6h_timesteps": 0,
+    "flagged_rows": 0,
+    "clean_rows": 116864,
+    "status": "PASSED",
+    "transform_notes": [
+      "Dropped target-leakage columns: ['weather_condition_actual']",
+      "Converted pred_wind_kmh (km/h) -> wind_ms (m/s)"
+    ],
+    "provenance": {
+      "file": "kerala_graphcast_2021_2025.csv",
+      "run_id": "983987a59ea6",
+      "uploaded_by": "bootstrap",
+      "ingested_at": "2026-11-20T13:20:49.566923+00:00",
+      "synthetic": true
+    }
+  },
+  "ensemble": {
+    "n_rows": 116864,
+    "source_type": "ensemble",
+    "missing_values": {},
+    "optional_variables_present": {
+      "wind_dir_deg": false,
+      "wind_gust_ms": false,
+      "cloud_cover_pct": false
+    },
+    "duplicates": 0,
+    "invalid_timestamps": 0,
+    "unknown_locations": [],
+    "out_of_range": {},
+    "inconsistent_percentiles": 0,
+    "time_coverage": {
+      "start": "2020-12-31 18:30:00+00:00",
+      "end": "2025-12-31 12:30:00+00:00"
+    },
+    "districts_present": [
+      "Alappuzha",
+      "Ernakulam",
+      "Idukki",
+      "Kozhikode",
+      "Palakkad",
+      "Thiruvananthapuram",
+      "Thrissur",
+      "Wayanad"
+    ],
+    "districts_missing": [
+      "Kollam",
+      "Pathanamthitta",
+      "Kottayam",
+      "Malappuram",
+      "Kannur",
+      "Kasaragod"
+    ],
+    "split_counts": {
+      "train": 70224,
+      "val": 23424,
+      "test": 23216
+    },
+    "extreme_event_distribution": {
+      "NORMAL_WEATHER": 98373,
+      "THUNDERSTORM_SQUALL": 7562,
+      "HEAVY_MONSOON_SURGE": 6386,
+      "EXTREME_RAINFALL": 4371,
+      "HIGH_WIND_CYCLONIC": 172
+    },
+    "lead_times": [
+      24,
+      72
+    ],
+    "init_cycles": 7312,
+    "missing_6h_timesteps": 0,
+    "flagged_rows": 0,
+    "clean_rows": 116864,
+    "status": "PASSED",
+    "transform_notes": [
+      "Dropped target-leakage columns: ['weather_condition_actual']",
+      "Converted pred_wind_kmh (km/h) -> wind_ms (m/s)"
+    ],
+    "provenance": {
+      "file": "kerala_weathernext2_2021_2025.csv",
+      "run_id": "64ca1e78940e",
+      "uploaded_by": "bootstrap",
+      "ingested_at": "2026-11-20T13:20:51.238604+00:00",
+      "synthetic": true
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# Google Cloud Build & Cloud Run Deployment Pipeline for Project: forexa-e5dc7
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "asia-south1-docker.pkg.dev/$PROJECT_ID/forexa-repo/forexa-app:latest"
+      - "."
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "asia-south1-docker.pkg.dev/$PROJECT_ID/forexa-repo/forexa-app:latest"
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "forexa-app"
+      - "--image"
+      - "asia-south1-docker.pkg.dev/$PROJECT_ID/forexa-repo/forexa-app:latest"
+      - "--region"
+      - "asia-south1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--min-instances"
+      - "0"
+      - "--max-instances"
+      - "2"
+      - "--memory"
+      - "1Gi"
+      - "--set-env-vars"
+      - "GCP_PROJECT_ID=forexa-e5dc7,GCP_REGION=asia-south1,FOREXA_STORAGE=local"
+images:
+  - "asia-south1-docker.pkg.dev/$PROJECT_ID/forexa-repo/forexa-app:latest"

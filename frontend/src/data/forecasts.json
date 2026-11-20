@@ -1,0 +1,622 @@
+{
+  "_meta": {
+    "dataset": "FOREXA Hybrid AI–NWP Blended Forecast Telemetry (Kerala 14 Districts)",
+    "status": "Illustrative data — structured for live NOAA GFS (NWP), GraphCast (AI), and WeatherNext 2 (Ensemble) ingestion",
+    "referenceInitTime": "2026-09-28T09:00:00+05:30",
+    "horizonsHours": [1, 12, 24, 36, 48, 60, 72]
+  },
+  "districtForecasts": {
+    "wayanad": {
+      "districtId": "wayanad",
+      "baseEventType": "Extremely heavy rainfall",
+      "iconType": "landslide",
+      "isCycloneAffected": false,
+      "conditionTitle": "Extremely heavy rainfall · Landslide alert",
+      "conditionSummary": "Intense orographic cloudburst over Vythiri–Meppadi escarpment with saturated soil slopes.",
+      "onsetHoursBase": 6,
+      "durationHours": 28,
+      "impactScore": 98,
+      "likelyImpacts": ["Landslide", "Flash flood", "Ghat road closure", "Tree fall"],
+      "damRiskLevel": "Critical · Banasura Sagar at 94% FRL (Red Alert Stage)",
+      "eventProbabilityPct": 93,
+      "confidence": "High",
+      "confidenceReason": "Strong Ensemble–AI convergence on 850 hPa westerly jet core hitting Western Ghats.",
+      "similarHistoricalRef": "Wayanad, Jul 2024",
+      "recommendedActions": [
+        "Evacuate landslide-prone slopes in Meppadi, Chooralmala, and Vythiri taluks immediately.",
+        "Halt all night vehicular traffic along Thamarassery (NH-766) and Boys Town ghat roads.",
+        "Pre-position NDRF & KSDMA search-and-rescue teams and open 24x7 relief camps."
+      ],
+      "drivers": [
+        { "name": "Orographic Lift along Western Ghats Escarpment", "impactPct": 94, "detail": "Steep 950m terrain forcing rapid adiabatic cooling of moisture-laden Arabian Sea westerlies." },
+        { "name": "Offshore Monsoon Trough & Low-Level Jet (850 hPa)", "impactPct": 86, "detail": "Sustained 45 kt cross-equatorial moisture flux convergence focused at 11.6°N." },
+        { "name": "Ensemble Member Cluster Convergence", "impactPct": 79, "detail": "44 of 50 WeatherNext 2 members exceed 200 mm/24h threshold over Wayanad plateau." },
+        { "name": "Recent 7-Day Rolling Skill Advantage (Ensemble + AI)", "impactPct": 72, "detail": "Ensemble MAE (9.8 mm) outperformed coarse NWP (34.2 mm) during past 3 highland rain spikes." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 22, "ai": 34, "ensemble": 44 },
+        "12": { "nwp": 18, "ai": 32, "ensemble": 50 },
+        "24": { "nwp": 15, "ai": 31, "ensemble": 54 },
+        "36": { "nwp": 16, "ai": 30, "ensemble": 54 },
+        "48": { "nwp": 19, "ai": 29, "ensemble": 52 },
+        "60": { "nwp": 21, "ai": 27, "ensemble": 52 },
+        "72": { "nwp": 24, "ai": 26, "ensemble": 50 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 18, "ai": 25, "ensemble": 28, "spread": 4.2, "windKmh": 42, "gustKmh": 64, "tempC": 21.4, "humidityPct": 96 },
+        { "h": 12, "nwp": 26, "ai": 37, "ensemble": 41, "spread": 5.5, "windKmh": 54, "gustKmh": 78, "tempC": 20.8, "humidityPct": 98 },
+        { "h": 24, "nwp": 29, "ai": 39, "ensemble": 44, "spread": 6.1, "windKmh": 58, "gustKmh": 84, "tempC": 20.2, "humidityPct": 98 },
+        { "h": 36, "nwp": 22, "ai": 31, "ensemble": 35, "spread": 5.8, "windKmh": 46, "gustKmh": 68, "tempC": 21.0, "humidityPct": 95 },
+        { "h": 48, "nwp": 16, "ai": 21, "ensemble": 24, "spread": 4.9, "windKmh": 36, "gustKmh": 52, "tempC": 21.8, "humidityPct": 92 },
+        { "h": 60, "nwp": 12, "ai": 15, "ensemble": 17, "spread": 4.0, "windKmh": 28, "gustKmh": 42, "tempC": 22.3, "humidityPct": 89 },
+        { "h": 72, "nwp": 9,  "ai": 11, "ensemble": 13, "spread": 3.5, "windKmh": 24, "gustKmh": 36, "tempC": 22.9, "humidityPct": 87 }
+      ]
+    },
+    "kozhikode": {
+      "districtId": "kozhikode",
+      "baseEventType": "Cyclone",
+      "iconType": "cyclone",
+      "isCycloneAffected": true,
+      "conditionTitle": "Cyclone ARB-04 · Coastal Squall & Extreme Rain",
+      "conditionSummary": "Offshore cyclonic core tracking 45 km off Kozhikode coast with 88 km/h gale gusts and storm surge.",
+      "onsetHoursBase": 4,
+      "durationHours": 24,
+      "impactScore": 99,
+      "likelyImpacts": ["Cyclonic gales", "Storm surge", "Flash flood", "Power outage", "Coastal erosion"],
+      "damRiskLevel": "High · Kakkayam Reservoir spillway regulation on standby",
+      "eventProbabilityPct": 95,
+      "confidence": "High",
+      "confidenceReason": "GraphCast AI vortex tracker and Ensemble storm-surge members tightly aligned on Malabar track.",
+      "similarHistoricalRef": "Kozhikode, Aug 2019",
+      "recommendedActions": [
+        "Complete total ban on deep-sea and coastal fishing from Beypore, Puthiyappa, and Koyilandy harbours.",
+        "Evacuate coastal wards within 250m of high-tide line due to 2.8m storm surge forecast.",
+        "Secure KSEB high-tension feeders and deploy emergency mobile comms units in Kuttiady foothills."
+      ],
+      "drivers": [
+        { "name": "Arabian Sea Cyclonic Vortex ARB-04", "impactPct": 97, "detail": "992 hPa deep depression intensifying offshore with tight outer rainband feeder bands." },
+        { "name": "Coastal Convergence & Friction Gale Acceleration", "impactPct": 89, "detail": "Onshore 88 km/h gusts piling up 2.4–2.8m astronomical + barometric surge." },
+        { "name": "GraphCast AI Track Skill Dominance", "impactPct": 84, "detail": "AI mesoscale vortex track error <14 km over last 4 forecast initializations." },
+        { "name": "Eastern Foothill Orographic Feeder Band", "impactPct": 76, "detail": "Secondary cloudburst potential over Thamarassery and Koorachundu ranges." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 24, "ai": 42, "ensemble": 34 },
+        "12": { "nwp": 20, "ai": 45, "ensemble": 35 },
+        "24": { "nwp": 18, "ai": 44, "ensemble": 38 },
+        "36": { "nwp": 20, "ai": 40, "ensemble": 40 },
+        "48": { "nwp": 22, "ai": 36, "ensemble": 42 },
+        "60": { "nwp": 25, "ai": 33, "ensemble": 42 },
+        "72": { "nwp": 27, "ai": 31, "ensemble": 42 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 21, "ai": 29, "ensemble": 27, "spread": 3.8, "windKmh": 68, "gustKmh": 88, "tempC": 25.1, "humidityPct": 95 },
+        { "h": 12, "nwp": 28, "ai": 38, "ensemble": 36, "spread": 4.9, "windKmh": 76, "gustKmh": 96, "tempC": 24.6, "humidityPct": 97 },
+        { "h": 24, "nwp": 31, "ai": 40, "ensemble": 39, "spread": 5.4, "windKmh": 72, "gustKmh": 92, "tempC": 24.4, "humidityPct": 97 },
+        { "h": 36, "nwp": 24, "ai": 30, "ensemble": 32, "spread": 5.1, "windKmh": 58, "gustKmh": 76, "tempC": 25.0, "humidityPct": 93 },
+        { "h": 48, "nwp": 15, "ai": 19, "ensemble": 21, "spread": 4.2, "windKmh": 42, "gustKmh": 58, "tempC": 25.8, "humidityPct": 89 },
+        { "h": 60, "nwp": 10, "ai": 13, "ensemble": 15, "spread": 3.5, "windKmh": 32, "gustKmh": 45, "tempC": 26.3, "humidityPct": 86 },
+        { "h": 72, "nwp": 8,  "ai": 10, "ensemble": 11, "spread": 3.0, "windKmh": 26, "gustKmh": 38, "tempC": 26.8, "humidityPct": 84 }
+      ]
+    },
+    "idukki": {
+      "districtId": "idukki",
+      "baseEventType": "Extremely heavy rainfall",
+      "iconType": "landslide",
+      "isCycloneAffected": false,
+      "conditionTitle": "Extremely heavy rainfall · Dam inflow & Landslide",
+      "conditionSummary": "Persistent high-intensity rain over Periyar catchment and Munnar–Devikulam steep slopes.",
+      "onsetHoursBase": 8,
+      "durationHours": 36,
+      "impactScore": 95,
+      "likelyImpacts": ["Landslide", "Dam spillway release", "Flash flood", "Road cutoff"],
+      "damRiskLevel": "Critical · Idukki Reservoir at 2398.4 ft (Orange-to-Red Rule Curve)",
+      "eventProbabilityPct": 91,
+      "confidence": "High",
+      "confidenceReason": "High terrain locking of convective bands verified across 90% of ensemble members.",
+      "similarHistoricalRef": "Idukki, Aug 2018",
+      "recommendedActions": [
+        "Issue Cheruthoni Dam downstream bank evacuation alert along Periyar river corridor.",
+        "Suspend all tourist movement and heavy transport to Munnar, Rajamala, and Peerumedu.",
+        "Monitor soil moisture sensors in Devikulam and Udumbanchola taluks continuously."
+      ],
+      "drivers": [
+        { "name": "Southern Western Ghats Orographic Barrier (1250m+)", "impactPct": 93, "detail": "Continuous uplift of deep tropospheric moisture column over Anamudi-Munnar ridge." },
+        { "name": "Periyar Catchment Inflow Acceleration", "impactPct": 85, "detail": "Runoff coefficient exceeding 0.82 due to multi-day antecedent soil saturation." },
+        { "name": "Ensemble Extreme Quantile Shift (95th Percentile)", "impactPct": 80, "detail": "WeatherNext 2 tail members indicate localized 240+ mm/24h pockets." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 20, "ai": 33, "ensemble": 47 },
+        "12": { "nwp": 17, "ai": 31, "ensemble": 52 },
+        "24": { "nwp": 16, "ai": 29, "ensemble": 55 },
+        "36": { "nwp": 18, "ai": 28, "ensemble": 54 },
+        "48": { "nwp": 20, "ai": 28, "ensemble": 52 },
+        "60": { "nwp": 22, "ai": 27, "ensemble": 51 },
+        "72": { "nwp": 25, "ai": 26, "ensemble": 49 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 16, "ai": 22, "ensemble": 25, "spread": 3.9, "windKmh": 38, "gustKmh": 58, "tempC": 18.5, "humidityPct": 97 },
+        { "h": 12, "nwp": 24, "ai": 34, "ensemble": 38, "spread": 5.2, "windKmh": 48, "gustKmh": 72, "tempC": 17.9, "humidityPct": 99 },
+        { "h": 24, "nwp": 27, "ai": 36, "ensemble": 41, "spread": 5.8, "windKmh": 52, "gustKmh": 76, "tempC": 17.6, "humidityPct": 99 },
+        { "h": 36, "nwp": 23, "ai": 30, "ensemble": 34, "spread": 5.4, "windKmh": 44, "gustKmh": 65, "tempC": 18.2, "humidityPct": 96 },
+        { "h": 48, "nwp": 17, "ai": 22, "ensemble": 25, "spread": 4.6, "windKmh": 35, "gustKmh": 50, "tempC": 18.8, "humidityPct": 94 },
+        { "h": 60, "nwp": 12, "ai": 16, "ensemble": 18, "spread": 3.8, "windKmh": 28, "gustKmh": 40, "tempC": 19.3, "humidityPct": 91 },
+        { "h": 72, "nwp": 9,  "ai": 12, "ensemble": 14, "spread": 3.2, "windKmh": 22, "gustKmh": 34, "tempC": 19.8, "humidityPct": 88 }
+      ]
+    },
+    "malappuram": {
+      "districtId": "malappuram",
+      "baseEventType": "Very heavy rainfall",
+      "iconType": "flood",
+      "isCycloneAffected": false,
+      "conditionTitle": "Very heavy rainfall · Chaliyar flash flood risk",
+      "conditionSummary": "Heavy runoff from Nilambur upper catchment feeding rapid rise in Chaliyar & Kadalundi rivers.",
+      "onsetHoursBase": 8,
+      "durationHours": 24,
+      "impactScore": 84,
+      "likelyImpacts": ["Riverine flood", "Landslide in Nilambur", "Low-lying waterlogging"],
+      "damRiskLevel": "Elevated · Chaliyar river gauge approaching warning level at Nilambur",
+      "eventProbabilityPct": 82,
+      "confidence": "High",
+      "confidenceReason": "Strong agreement between GraphCast and WeatherNext 2 on Nilambur basin accumulation.",
+      "similarHistoricalRef": "Malappuram, Aug 2019",
+      "recommendedActions": [
+        "Alert riverine panchayats along Chaliyar and Kadalundi basins for potential bank overflow.",
+        "Monitor Kavalappara and Pothukallu hill slopes for early soil creep signs.",
+        "Keep emergency boats and civil defense teams ready in Tirur and Ponnani coastal zones."
+      ],
+      "drivers": [
+        { "name": "Nilambur Valley Funneling Effect", "impactPct": 85, "detail": "Chaliyar amphitheater terrain concentrating moisture flux into upper tributaries." },
+        { "name": "Downstream River Stage Accumulation", "impactPct": 78, "detail": "Combined Wayanad-Camel's Hump runoff draining through Nilambur plains." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 26, "ai": 36, "ensemble": 38 },
+        "12": { "nwp": 23, "ai": 36, "ensemble": 41 },
+        "24": { "nwp": 21, "ai": 35, "ensemble": 44 },
+        "36": { "nwp": 23, "ai": 33, "ensemble": 44 },
+        "48": { "nwp": 25, "ai": 32, "ensemble": 43 },
+        "60": { "nwp": 28, "ai": 30, "ensemble": 42 },
+        "72": { "nwp": 30, "ai": 29, "ensemble": 41 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 13, "ai": 17, "ensemble": 18, "spread": 3.1, "windKmh": 40, "gustKmh": 58, "tempC": 24.8, "humidityPct": 93 },
+        { "h": 12, "nwp": 18, "ai": 24, "ensemble": 26, "spread": 4.0, "windKmh": 48, "gustKmh": 68, "tempC": 24.2, "humidityPct": 95 },
+        { "h": 24, "nwp": 20, "ai": 26, "ensemble": 28, "spread": 4.4, "windKmh": 46, "gustKmh": 66, "tempC": 24.0, "humidityPct": 96 },
+        { "h": 36, "nwp": 16, "ai": 20, "ensemble": 22, "spread": 3.9, "windKmh": 38, "gustKmh": 54, "tempC": 24.6, "humidityPct": 92 },
+        { "h": 48, "nwp": 11, "ai": 14, "ensemble": 16, "spread": 3.2, "windKmh": 30, "gustKmh": 44, "tempC": 25.3, "humidityPct": 88 },
+        { "h": 60, "nwp": 8,  "ai": 10, "ensemble": 12, "spread": 2.6, "windKmh": 24, "gustKmh": 35, "tempC": 25.9, "humidityPct": 85 },
+        { "h": 72, "nwp": 6,  "ai": 8,  "ensemble": 9,  "spread": 2.2, "windKmh": 20, "gustKmh": 30, "tempC": 26.4, "humidityPct": 83 }
+      ]
+    },
+    "kannur": {
+      "districtId": "kannur",
+      "baseEventType": "Very heavy rainfall",
+      "iconType": "wind",
+      "isCycloneAffected": true,
+      "conditionTitle": "Cyclone outer band · Very heavy rain & Gales",
+      "conditionSummary": "Northern feeder band of ARB-04 sweeping Kannur coast and Iritty–Brahmagiri hills.",
+      "onsetHoursBase": 10,
+      "durationHours": 24,
+      "impactScore": 82,
+      "likelyImpacts": ["High wind", "Coastal surge", "Flash flood", "Tree fall"],
+      "damRiskLevel": "Watch · Pazhassi Barrage shutters opened for regulated discharge",
+      "eventProbabilityPct": 80,
+      "confidence": "High",
+      "confidenceReason": "Consistent coastal wind-field and rainband timing between AI and NWP models.",
+      "similarHistoricalRef": "Kannur, Aug 2019",
+      "recommendedActions": [
+        "Enforce coastal warning for Azhikode and Thalassery fishing harbours.",
+        "Monitor Iritty and Aralam hill ranges for localized flash floods.",
+        "Prune hazardous trees near hospital and highway corridors."
+      ],
+      "drivers": [
+        { "name": "Cyclone ARB-04 Northern Feeder Arm", "impactPct": 84, "detail": "Strong onshore southeasterly-to-westerly shear line crossing 12.0°N." },
+        { "name": "Brahmagiri Foothill Convergence", "impactPct": 74, "detail": "Enhanced convective cells anchoring over eastern Kannur taluks." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 28, "ai": 38, "ensemble": 34 },
+        "12": { "nwp": 25, "ai": 40, "ensemble": 35 },
+        "24": { "nwp": 23, "ai": 39, "ensemble": 38 },
+        "36": { "nwp": 25, "ai": 36, "ensemble": 39 },
+        "48": { "nwp": 27, "ai": 34, "ensemble": 39 },
+        "60": { "nwp": 29, "ai": 32, "ensemble": 39 },
+        "72": { "nwp": 31, "ai": 30, "ensemble": 39 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 11, "ai": 15, "ensemble": 14, "spread": 2.8, "windKmh": 52, "gustKmh": 72, "tempC": 25.4, "humidityPct": 92 },
+        { "h": 12, "nwp": 17, "ai": 23, "ensemble": 22, "spread": 3.7, "windKmh": 62, "gustKmh": 82, "tempC": 24.8, "humidityPct": 95 },
+        { "h": 24, "nwp": 21, "ai": 27, "ensemble": 26, "spread": 4.1, "windKmh": 64, "gustKmh": 85, "tempC": 24.5, "humidityPct": 96 },
+        { "h": 36, "nwp": 19, "ai": 24, "ensemble": 25, "spread": 4.0, "windKmh": 56, "gustKmh": 74, "tempC": 24.9, "humidityPct": 94 },
+        { "h": 48, "nwp": 14, "ai": 17, "ensemble": 18, "spread": 3.4, "windKmh": 42, "gustKmh": 58, "tempC": 25.6, "humidityPct": 90 },
+        { "h": 60, "nwp": 9,  "ai": 12, "ensemble": 13, "spread": 2.8, "windKmh": 30, "gustKmh": 42, "tempC": 26.2, "humidityPct": 86 },
+        { "h": 72, "nwp": 7,  "ai": 9,  "ensemble": 10, "spread": 2.3, "windKmh": 24, "gustKmh": 34, "tempC": 26.6, "humidityPct": 84 }
+      ]
+    },
+    "ernakulam": {
+      "districtId": "ernakulam",
+      "baseEventType": "Flood",
+      "iconType": "flood",
+      "isCycloneAffected": false,
+      "conditionTitle": "Very heavy rainfall · Urban & Periyar flood risk",
+      "conditionSummary": "Intense coastal squalls combined with high tide and Periyar basin discharge.",
+      "onsetHoursBase": 10,
+      "durationHours": 20,
+      "impactScore": 79,
+      "likelyImpacts": ["Urban waterlogging", "River bank inundation", "Traffic disruption"],
+      "damRiskLevel": "High · Bhoothathankettu Barrage all shutters raised; Aluva gauge monitored",
+      "eventProbabilityPct": 78,
+      "confidence": "High",
+      "confidenceReason": "Low ensemble spread across central coastal plains.",
+      "similarHistoricalRef": "Ernakulam, Aug 2018",
+      "recommendedActions": [
+        "Activate high-capacity dewatering pumps across Kochi city low-lying zones (M.G. Road, Kaloor).",
+        "Put Aluva, Paravur, and Kothamangalam riverine wards on flood watch.",
+        "Coordinate Cochin Port & Naval Base tidal lock management."
+      ],
+      "drivers": [
+        { "name": "Periyar River Discharge + Spring Tide Coincidence", "impactPct": 83, "detail": "Backwater hydraulic locking restricting rapid urban drainage into Vembanad estuary." },
+        { "name": "Central Coastal Squall Line Passage", "impactPct": 75, "detail": "18–24 mm/h convective bursts riding onshore westerlies." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 28, "ai": 36, "ensemble": 36 },
+        "12": { "nwp": 25, "ai": 37, "ensemble": 38 },
+        "24": { "nwp": 24, "ai": 36, "ensemble": 40 },
+        "36": { "nwp": 26, "ai": 34, "ensemble": 40 },
+        "48": { "nwp": 28, "ai": 33, "ensemble": 39 },
+        "60": { "nwp": 30, "ai": 31, "ensemble": 39 },
+        "72": { "nwp": 32, "ai": 30, "ensemble": 38 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 12, "ai": 15, "ensemble": 16, "spread": 2.6, "windKmh": 38, "gustKmh": 54, "tempC": 25.8, "humidityPct": 91 },
+        { "h": 12, "nwp": 17, "ai": 22, "ensemble": 23, "spread": 3.4, "windKmh": 45, "gustKmh": 64, "tempC": 25.1, "humidityPct": 94 },
+        { "h": 24, "nwp": 18, "ai": 23, "ensemble": 25, "spread": 3.7, "windKmh": 42, "gustKmh": 60, "tempC": 24.9, "humidityPct": 95 },
+        { "h": 36, "nwp": 14, "ai": 18, "ensemble": 19, "spread": 3.2, "windKmh": 34, "gustKmh": 48, "tempC": 25.5, "humidityPct": 90 },
+        { "h": 48, "nwp": 10, "ai": 12, "ensemble": 13, "spread": 2.7, "windKmh": 28, "gustKmh": 40, "tempC": 26.1, "humidityPct": 87 },
+        { "h": 60, "nwp": 7,  "ai": 9,  "ensemble": 10, "spread": 2.2, "windKmh": 22, "gustKmh": 32, "tempC": 26.7, "humidityPct": 84 },
+        { "h": 72, "nwp": 5,  "ai": 7,  "ensemble": 8,  "spread": 1.9, "windKmh": 18, "gustKmh": 28, "tempC": 27.1, "humidityPct": 82 }
+      ]
+    },
+    "thrissur": {
+      "districtId": "thrissur",
+      "baseEventType": "Very heavy rainfall",
+      "iconType": "heavy-rain",
+      "isCycloneAffected": false,
+      "conditionTitle": "Very heavy rainfall · Chalakudy basin watch",
+      "conditionSummary": "Sustained heavy downpours over Athirappilly–Peringalkuthu forest catchment.",
+      "onsetHoursBase": 11,
+      "durationHours": 22,
+      "impactScore": 76,
+      "likelyImpacts": ["River swell", "Waterlogging", "Ghat road slip"],
+      "damRiskLevel": "High · Peringalkuthu Dam at 91% storage; controlled sluice release active",
+      "eventProbabilityPct": 76,
+      "confidence": "High",
+      "confidenceReason": "Tight NWP and Ensemble consensus on central Kerala rain belt.",
+      "similarHistoricalRef": "Thrissur, Aug 2018",
+      "recommendedActions": [
+        "Maintain orange alert along Chalakudy river banks and low-lying causeways.",
+        "Restrict tourist entry to Athirappilly and Vazhachal waterfalls.",
+        "Monitor Peechi and Chimmini dam inflows every 3 hours."
+      ],
+      "drivers": [
+        { "name": "Chalakudy Upper Catchment Orographic Plume", "impactPct": 81, "detail": "Continuous moisture transport into Sholayar-Peringalkuthu cascade." },
+        { "name": "Midland Convective Training", "impactPct": 72, "detail": "Back-building rain cells producing 140+ mm/24h totals." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 29, "ai": 34, "ensemble": 37 },
+        "12": { "nwp": 26, "ai": 35, "ensemble": 39 },
+        "24": { "nwp": 25, "ai": 34, "ensemble": 41 },
+        "36": { "nwp": 27, "ai": 33, "ensemble": 40 },
+        "48": { "nwp": 29, "ai": 32, "ensemble": 39 },
+        "60": { "nwp": 31, "ai": 30, "ensemble": 39 },
+        "72": { "nwp": 33, "ai": 29, "ensemble": 38 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 11, "ai": 14, "ensemble": 15, "spread": 2.5, "windKmh": 36, "gustKmh": 52, "tempC": 25.5, "humidityPct": 91 },
+        { "h": 12, "nwp": 16, "ai": 20, "ensemble": 22, "spread": 3.3, "windKmh": 44, "gustKmh": 62, "tempC": 24.9, "humidityPct": 94 },
+        { "h": 24, "nwp": 17, "ai": 22, "ensemble": 24, "spread": 3.6, "windKmh": 42, "gustKmh": 58, "tempC": 24.7, "humidityPct": 95 },
+        { "h": 36, "nwp": 13, "ai": 17, "ensemble": 18, "spread": 3.1, "windKmh": 34, "gustKmh": 48, "tempC": 25.3, "humidityPct": 90 },
+        { "h": 48, "nwp": 9,  "ai": 12, "ensemble": 13, "spread": 2.5, "windKmh": 26, "gustKmh": 38, "tempC": 26.0, "humidityPct": 86 },
+        { "h": 60, "nwp": 7,  "ai": 8,  "ensemble": 9,  "spread": 2.1, "windKmh": 22, "gustKmh": 32, "tempC": 26.5, "humidityPct": 84 },
+        { "h": 72, "nwp": 5,  "ai": 6,  "ensemble": 7,  "spread": 1.8, "windKmh": 18, "gustKmh": 26, "tempC": 27.0, "humidityPct": 81 }
+      ]
+    },
+    "pathanamthitta": {
+      "districtId": "pathanamthitta",
+      "baseEventType": "Very heavy rainfall",
+      "iconType": "heavy-rain",
+      "isCycloneAffected": false,
+      "conditionTitle": "Very heavy rainfall · Pamba basin & Ghat watch",
+      "conditionSummary": "Heavy forest catchment rain over Goodrickal, Kakki, and Sabarimala hills.",
+      "onsetHoursBase": 12,
+      "durationHours": 20,
+      "impactScore": 74,
+      "likelyImpacts": ["River swell", "Localized landslip", "Low-lying flooding"],
+      "damRiskLevel": "Elevated · Kakki-Anathode at 86% storage; Pamba Triveni gauge rising",
+      "eventProbabilityPct": 73,
+      "confidence": "Medium",
+      "confidenceReason": "Moderate spread in southern ghat convective cell placement between NWP and AI.",
+      "similarHistoricalRef": "Pathanamthitta, Oct 2021",
+      "recommendedActions": [
+        "Monitor Pamba, Achenkovil, and Manimala river levels at Ranni and Thiruvalla.",
+        "Advise caution along Konni–Achankovil and Moozhiyar forest roads."
+      ],
+      "drivers": [
+        { "name": "Eastern Forested Ghat Moisture Trapping", "impactPct": 77, "detail": "Orographic enhancement over Ranni and Konni reserve forests." },
+        { "name": "Pamba Headwater Runoff Surge", "impactPct": 68, "detail": "Steep basin slope yielding rapid 6-hour hydrograph peak." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 27, "ai": 33, "ensemble": 40 },
+        "12": { "nwp": 25, "ai": 33, "ensemble": 42 },
+        "24": { "nwp": 24, "ai": 32, "ensemble": 44 },
+        "36": { "nwp": 26, "ai": 31, "ensemble": 43 },
+        "48": { "nwp": 28, "ai": 30, "ensemble": 42 },
+        "60": { "nwp": 30, "ai": 29, "ensemble": 41 },
+        "72": { "nwp": 32, "ai": 28, "ensemble": 40 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 10, "ai": 13, "ensemble": 14, "spread": 2.7, "windKmh": 30, "gustKmh": 44, "tempC": 24.4, "humidityPct": 92 },
+        { "h": 12, "nwp": 15, "ai": 19, "ensemble": 21, "spread": 3.5, "windKmh": 38, "gustKmh": 54, "tempC": 23.8, "humidityPct": 95 },
+        { "h": 24, "nwp": 16, "ai": 20, "ensemble": 22, "spread": 3.8, "windKmh": 36, "gustKmh": 52, "tempC": 23.6, "humidityPct": 95 },
+        { "h": 36, "nwp": 12, "ai": 15, "ensemble": 17, "spread": 3.2, "windKmh": 28, "gustKmh": 42, "tempC": 24.2, "humidityPct": 91 },
+        { "h": 48, "nwp": 8,  "ai": 11, "ensemble": 12, "spread": 2.6, "windKmh": 22, "gustKmh": 34, "tempC": 24.9, "humidityPct": 88 },
+        { "h": 60, "nwp": 6,  "ai": 8,  "ensemble": 9,  "spread": 2.1, "windKmh": 18, "gustKmh": 28, "tempC": 25.4, "humidityPct": 85 },
+        { "h": 72, "nwp": 5,  "ai": 6,  "ensemble": 7,  "spread": 1.8, "windKmh": 16, "gustKmh": 24, "tempC": 25.9, "humidityPct": 83 }
+      ]
+    },
+    "kottayam": {
+      "districtId": "kottayam",
+      "baseEventType": "Heavy rainfall",
+      "iconType": "thunderstorm",
+      "isCycloneAffected": false,
+      "conditionTitle": "Heavy rainfall · Meenachil & Eastern hill watch",
+      "conditionSummary": "Thundershowers over Mundakayam–Erattupetta hills and Kuttanad eastern fringe.",
+      "onsetHoursBase": 12,
+      "durationHours": 18,
+      "impactScore": 65,
+      "likelyImpacts": ["Waterlogging", "Localized flash runoff", "Lightning"],
+      "damRiskLevel": "Moderate · Meenachil river at Pala within safe bank capacity",
+      "eventProbabilityPct": 68,
+      "confidence": "High",
+      "confidenceReason": "Balanced multi-model consensus across midland stations.",
+      "similarHistoricalRef": "Kottayam, Oct 2021",
+      "recommendedActions": [
+        "Monitor Koottickal, Poonjar, and Mundakayam hill panchayats during evening peak rain.",
+        "Keep Vaikom and Kumarakom backwater bund pumping stations ready."
+      ],
+      "drivers": [
+        { "name": "Midland-to-Foothill Convective Trigger", "impactPct": 71, "detail": "Afternoon thermal instability interacting with monsoon westerlies." },
+        { "name": "Vembanad Backwater Drainage Lag", "impactPct": 62, "detail": "Slow outflow in western taluks during high tide." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 31, "ai": 34, "ensemble": 35 },
+        "12": { "nwp": 29, "ai": 35, "ensemble": 36 },
+        "24": { "nwp": 28, "ai": 34, "ensemble": 38 },
+        "36": { "nwp": 30, "ai": 33, "ensemble": 37 },
+        "48": { "nwp": 32, "ai": 31, "ensemble": 37 },
+        "60": { "nwp": 33, "ai": 30, "ensemble": 37 },
+        "72": { "nwp": 35, "ai": 29, "ensemble": 36 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 8,  "ai": 10, "ensemble": 11, "spread": 2.1, "windKmh": 28, "gustKmh": 42, "tempC": 25.8, "humidityPct": 89 },
+        { "h": 12, "nwp": 11, "ai": 13, "ensemble": 14, "spread": 2.6, "windKmh": 34, "gustKmh": 48, "tempC": 25.2, "humidityPct": 92 },
+        { "h": 24, "nwp": 12, "ai": 14, "ensemble": 15, "spread": 2.8, "windKmh": 32, "gustKmh": 46, "tempC": 25.0, "humidityPct": 93 },
+        { "h": 36, "nwp": 9,  "ai": 11, "ensemble": 12, "spread": 2.4, "windKmh": 26, "gustKmh": 38, "tempC": 25.6, "humidityPct": 89 },
+        { "h": 48, "nwp": 7,  "ai": 8,  "ensemble": 9,  "spread": 2.0, "windKmh": 22, "gustKmh": 32, "tempC": 26.2, "humidityPct": 86 },
+        { "h": 60, "nwp": 5,  "ai": 6,  "ensemble": 7,  "spread": 1.7, "windKmh": 18, "gustKmh": 26, "tempC": 26.7, "humidityPct": 83 },
+        { "h": 72, "nwp": 4,  "ai": 5,  "ensemble": 6,  "spread": 1.5, "windKmh": 16, "gustKmh": 24, "tempC": 27.1, "humidityPct": 81 }
+      ]
+    },
+    "alappuzha": {
+      "districtId": "alappuzha",
+      "baseEventType": "Storm surge",
+      "iconType": "storm-surge",
+      "isCycloneAffected": false,
+      "conditionTitle": "Heavy rainfall · Kuttanad waterlogging & Swell waves",
+      "conditionSummary": "High sea swell waves (Kallakkadal) along coast and rising water levels in Kuttanad polders.",
+      "onsetHoursBase": 12,
+      "durationHours": 24,
+      "impactScore": 64,
+      "likelyImpacts": ["Coastal swell", "Kuttanad polder waterlogging", "Fishing disruption"],
+      "damRiskLevel": "Watch · Thottappally Spillway 32 shutters open to drain Pamba floodwater",
+      "eventProbabilityPct": 66,
+      "confidence": "High",
+      "confidenceReason": "High skill in coastal NWP + AI wave-rainfall coupling.",
+      "similarHistoricalRef": "Alappuzha, Aug 2018",
+      "recommendedActions": [
+        "Keep Thottappally Spillway Approach Channel clear for maximum Pamba discharge.",
+        "Alert fishermen and coastal residents in Ambalappuzha and Cherthala regarding 2.2m swell waves."
+      ],
+      "drivers": [
+        { "name": "Upstream Pamba-Manimala Inflow into Kuttanad", "impactPct": 74, "detail": "Below-sea-level polders receiving combined eastern midland drainage." },
+        { "name": "Arabian Sea Long-Period Swell Surge", "impactPct": 66, "detail": "2.0–2.4m wave run-up along Alappuzha–Purakkad coast." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 32, "ai": 35, "ensemble": 33 },
+        "12": { "nwp": 30, "ai": 36, "ensemble": 34 },
+        "24": { "nwp": 29, "ai": 35, "ensemble": 36 },
+        "36": { "nwp": 31, "ai": 33, "ensemble": 36 },
+        "48": { "nwp": 33, "ai": 32, "ensemble": 35 },
+        "60": { "nwp": 34, "ai": 31, "ensemble": 35 },
+        "72": { "nwp": 36, "ai": 30, "ensemble": 34 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 8,  "ai": 9,  "ensemble": 10, "spread": 1.9, "windKmh": 36, "gustKmh": 50, "tempC": 26.2, "humidityPct": 89 },
+        { "h": 12, "nwp": 10, "ai": 12, "ensemble": 13, "spread": 2.3, "windKmh": 42, "gustKmh": 58, "tempC": 25.8, "humidityPct": 91 },
+        { "h": 24, "nwp": 11, "ai": 13, "ensemble": 14, "spread": 2.5, "windKmh": 40, "gustKmh": 55, "tempC": 25.6, "humidityPct": 92 },
+        { "h": 36, "nwp": 9,  "ai": 10, "ensemble": 11, "spread": 2.1, "windKmh": 32, "gustKmh": 45, "tempC": 26.1, "humidityPct": 88 },
+        { "h": 48, "nwp": 6,  "ai": 8,  "ensemble": 8,  "spread": 1.8, "windKmh": 26, "gustKmh": 36, "tempC": 26.7, "humidityPct": 85 },
+        { "h": 60, "nwp": 5,  "ai": 6,  "ensemble": 6,  "spread": 1.5, "windKmh": 20, "gustKmh": 30, "tempC": 27.1, "humidityPct": 83 },
+        { "h": 72, "nwp": 4,  "ai": 5,  "ensemble": 5,  "spread": 1.3, "windKmh": 18, "gustKmh": 26, "tempC": 27.5, "humidityPct": 81 }
+      ]
+    },
+    "palakkad": {
+      "districtId": "palakkad",
+      "baseEventType": "Heavy rainfall",
+      "iconType": "wind",
+      "isCycloneAffected": false,
+      "conditionTitle": "Heavy rainfall · Palakkad Gap gusty winds",
+      "conditionSummary": "Channeled 55 km/h winds through Palakkad Gap with heavy rain over Silent Valley & Nelliyampathy.",
+      "onsetHoursBase": 14,
+      "durationHours": 18,
+      "impactScore": 61,
+      "likelyImpacts": ["Gusty winds", "Tree branch fall", "Ghat road mist & slip"],
+      "damRiskLevel": "Moderate · Malampuzha & Mangalam dams at 78% capacity; normal regulation",
+      "eventProbabilityPct": 63,
+      "confidence": "High",
+      "confidenceReason": "Strong physical representation of Palakkad Gap wind jet in NWP and AI.",
+      "similarHistoricalRef": "Palakkad, Aug 2019",
+      "recommendedActions": [
+        "Exercise caution on Nelliyampathy and Attappadi hairpin roads.",
+        "Monitor Bharathapuzha tributaries for moderate level rise."
+      ],
+      "drivers": [
+        { "name": "Palakkad Gap Venturi Wind Acceleration", "impactPct": 76, "detail": "30 km discontinuity in Western Ghats accelerating low-level monsoon flow." },
+        { "name": "Silent Valley Escarpment Uplift", "impactPct": 65, "detail": "Localized heavy showers on northern Mannarkkad hills." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 34, "ai": 33, "ensemble": 33 },
+        "12": { "nwp": 32, "ai": 34, "ensemble": 34 },
+        "24": { "nwp": 30, "ai": 34, "ensemble": 36 },
+        "36": { "nwp": 32, "ai": 33, "ensemble": 35 },
+        "48": { "nwp": 34, "ai": 31, "ensemble": 35 },
+        "60": { "nwp": 35, "ai": 30, "ensemble": 35 },
+        "72": { "nwp": 36, "ai": 30, "ensemble": 34 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 7,  "ai": 9,  "ensemble": 9,  "spread": 1.8, "windKmh": 38, "gustKmh": 55, "tempC": 26.0, "humidityPct": 86 },
+        { "h": 12, "nwp": 10, "ai": 12, "ensemble": 13, "spread": 2.3, "windKmh": 44, "gustKmh": 62, "tempC": 25.4, "humidityPct": 89 },
+        { "h": 24, "nwp": 11, "ai": 13, "ensemble": 14, "spread": 2.5, "windKmh": 42, "gustKmh": 58, "tempC": 25.2, "humidityPct": 90 },
+        { "h": 36, "nwp": 8,  "ai": 10, "ensemble": 11, "spread": 2.1, "windKmh": 34, "gustKmh": 48, "tempC": 25.9, "humidityPct": 86 },
+        { "h": 48, "nwp": 6,  "ai": 7,  "ensemble": 8,  "spread": 1.7, "windKmh": 28, "gustKmh": 38, "tempC": 26.6, "humidityPct": 83 },
+        { "h": 60, "nwp": 4,  "ai": 5,  "ensemble": 6,  "spread": 1.4, "windKmh": 22, "gustKmh": 32, "tempC": 27.2, "humidityPct": 80 },
+        { "h": 72, "nwp": 3,  "ai": 4,  "ensemble": 5,  "spread": 1.2, "windKmh": 18, "gustKmh": 26, "tempC": 27.8, "humidityPct": 78 }
+      ]
+    },
+    "kasaragod": {
+      "districtId": "kasaragod",
+      "baseEventType": "Heavy rainfall",
+      "iconType": "thunderstorm",
+      "isCycloneAffected": false,
+      "conditionTitle": "Heavy rainfall · Northern coastal squalls",
+      "conditionSummary": "Intermittent heavy monsoon squalls and gusty onshore winds across Chandragiri basin.",
+      "onsetHoursBase": 16,
+      "durationHours": 18,
+      "impactScore": 58,
+      "likelyImpacts": ["Coastal squalls", "Localized waterlogging", "Rough sea"],
+      "damRiskLevel": "Normal · Chandragiri and Tejaswini rivers flowing below warning mark",
+      "eventProbabilityPct": 60,
+      "confidence": "High",
+      "confidenceReason": "Steady synoptic monsoon regime across northern Malabar.",
+      "similarHistoricalRef": "Kasaragod, Jul 2022",
+      "recommendedActions": [
+        "Small mechanized fishing vessels advised not to venture far offshore.",
+        "Monitor low-lying river crossings in Nileshwaram and Uppala."
+      ],
+      "drivers": [
+        { "name": "Northern Malabar Onshore Moisture Flux", "impactPct": 69, "detail": "Peripheral rainbands moving northeastward at 18 kt." },
+        { "name": "Laterite Plateau Runoff", "impactPct": 58, "detail": "Fast surface drainage into coastal estuaries." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 33, "ai": 35, "ensemble": 32 },
+        "12": { "nwp": 31, "ai": 36, "ensemble": 33 },
+        "24": { "nwp": 29, "ai": 36, "ensemble": 35 },
+        "36": { "nwp": 30, "ai": 34, "ensemble": 36 },
+        "48": { "nwp": 32, "ai": 33, "ensemble": 35 },
+        "60": { "nwp": 34, "ai": 31, "ensemble": 35 },
+        "72": { "nwp": 35, "ai": 30, "ensemble": 35 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 6,  "ai": 8,  "ensemble": 8,  "spread": 1.7, "windKmh": 34, "gustKmh": 48, "tempC": 26.1, "humidityPct": 88 },
+        { "h": 12, "nwp": 9,  "ai": 11, "ensemble": 12, "spread": 2.2, "windKmh": 42, "gustKmh": 58, "tempC": 25.5, "humidityPct": 91 },
+        { "h": 24, "nwp": 11, "ai": 13, "ensemble": 14, "spread": 2.6, "windKmh": 46, "gustKmh": 64, "tempC": 25.2, "humidityPct": 92 },
+        { "h": 36, "nwp": 10, "ai": 12, "ensemble": 13, "spread": 2.4, "windKmh": 40, "gustKmh": 56, "tempC": 25.6, "humidityPct": 90 },
+        { "h": 48, "nwp": 8,  "ai": 9,  "ensemble": 10, "spread": 2.0, "windKmh": 32, "gustKmh": 45, "tempC": 26.2, "humidityPct": 87 },
+        { "h": 60, "nwp": 5,  "ai": 7,  "ensemble": 7,  "spread": 1.6, "windKmh": 25, "gustKmh": 36, "tempC": 26.7, "humidityPct": 84 },
+        { "h": 72, "nwp": 4,  "ai": 5,  "ensemble": 6,  "spread": 1.4, "windKmh": 20, "gustKmh": 28, "tempC": 27.2, "humidityPct": 82 }
+      ]
+    },
+    "kollam": {
+      "districtId": "kollam",
+      "baseEventType": "Normal",
+      "iconType": "heavy-rain",
+      "isCycloneAffected": false,
+      "conditionTitle": "Moderate rainfall · Normal monsoon flow",
+      "conditionSummary": "Passing light-to-moderate showers over Ashtamudi coast and Thenmala hills.",
+      "onsetHoursBase": 18,
+      "durationHours": 12,
+      "impactScore": 36,
+      "likelyImpacts": ["Minor wet roads", "Moderate coastal breeze"],
+      "damRiskLevel": "Safe · Thenmala (Parappar) Dam at 68% capacity; no spillway release required",
+      "eventProbabilityPct": 35,
+      "confidence": "High",
+      "confidenceReason": "All three models confirm main convective core stays north of 9.2°N.",
+      "similarHistoricalRef": "Kollam, Sep 2023",
+      "recommendedActions": [
+        "Standard monsoon monitoring; no emergency restrictions required.",
+        "Routine coastal patrol along Neendakara harbour."
+      ],
+      "drivers": [
+        { "name": "Southern Weakened Monsoon Gradient", "impactPct": 48, "detail": "Core low-level jet displaced northward toward Central/North Kerala." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 36, "ai": 33, "ensemble": 31 },
+        "12": { "nwp": 35, "ai": 33, "ensemble": 32 },
+        "24": { "nwp": 34, "ai": 33, "ensemble": 33 },
+        "36": { "nwp": 34, "ai": 32, "ensemble": 34 },
+        "48": { "nwp": 35, "ai": 31, "ensemble": 34 },
+        "60": { "nwp": 36, "ai": 30, "ensemble": 34 },
+        "72": { "nwp": 37, "ai": 30, "ensemble": 33 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 4,  "ai": 5,  "ensemble": 5,  "spread": 1.1, "windKmh": 22, "gustKmh": 32, "tempC": 27.2, "humidityPct": 84 },
+        { "h": 12, "nwp": 5,  "ai": 6,  "ensemble": 6,  "spread": 1.3, "windKmh": 26, "gustKmh": 36, "tempC": 26.8, "humidityPct": 86 },
+        { "h": 24, "nwp": 6,  "ai": 6,  "ensemble": 7,  "spread": 1.4, "windKmh": 24, "gustKmh": 34, "tempC": 26.6, "humidityPct": 86 },
+        { "h": 36, "nwp": 5,  "ai": 5,  "ensemble": 6,  "spread": 1.2, "windKmh": 20, "gustKmh": 30, "tempC": 27.1, "humidityPct": 83 },
+        { "h": 48, "nwp": 3,  "ai": 4,  "ensemble": 4,  "spread": 1.0, "windKmh": 18, "gustKmh": 26, "tempC": 27.6, "humidityPct": 81 },
+        { "h": 60, "nwp": 3,  "ai": 3,  "ensemble": 4,  "spread": 0.9, "windKmh": 16, "gustKmh": 24, "tempC": 28.0, "humidityPct": 79 },
+        { "h": 72, "nwp": 2,  "ai": 3,  "ensemble": 3,  "spread": 0.8, "windKmh": 14, "gustKmh": 22, "tempC": 28.3, "humidityPct": 78 }
+      ]
+    },
+    "thiruvananthapuram": {
+      "districtId": "thiruvananthapuram",
+      "baseEventType": "Normal",
+      "iconType": "heavy-rain",
+      "isCycloneAffected": false,
+      "conditionTitle": "Light to moderate showers · Normal conditions",
+      "conditionSummary": "Brief passing showers over Agasthyamala hills; calm urban conditions in capital.",
+      "onsetHoursBase": 24,
+      "durationHours": 8,
+      "impactScore": 28,
+      "likelyImpacts": ["Normal urban traffic", "Light evening rain"],
+      "damRiskLevel": "Safe · Neyyar, Peppara & Aruvikkara dams within normal operating levels",
+      "eventProbabilityPct": 24,
+      "confidence": "High",
+      "confidenceReason": "High model skill and low variance (<1.2 mm/h) across all 3 engines.",
+      "similarHistoricalRef": "Thiruvananthapuram, Sep 2023",
+      "recommendedActions": [
+        "Normal operations across Thiruvananthapuram district.",
+        "Standard coastal vigil for Vizhinjam and Shankumugham beaches."
+      ],
+      "drivers": [
+        { "name": "Stable Southern Ridge Pressure Gradient", "impactPct": 42, "detail": "Weak synoptic forcing south of 8.8°N latitude." }
+      ],
+      "weightsByHorizon": {
+        "1":  { "nwp": 38, "ai": 32, "ensemble": 30 },
+        "12": { "nwp": 37, "ai": 32, "ensemble": 31 },
+        "24": { "nwp": 35, "ai": 33, "ensemble": 32 },
+        "36": { "nwp": 35, "ai": 32, "ensemble": 33 },
+        "48": { "nwp": 36, "ai": 31, "ensemble": 33 },
+        "60": { "nwp": 37, "ai": 30, "ensemble": 33 },
+        "72": { "nwp": 38, "ai": 30, "ensemble": 32 }
+      },
+      "hourlySeries": [
+        { "h": 1,  "nwp": 3,  "ai": 4,  "ensemble": 4,  "spread": 0.9, "windKmh": 18, "gustKmh": 28, "tempC": 27.8, "humidityPct": 82 },
+        { "h": 12, "nwp": 4,  "ai": 5,  "ensemble": 5,  "spread": 1.1, "windKmh": 22, "gustKmh": 32, "tempC": 27.4, "humidityPct": 84 },
+        { "h": 24, "nwp": 5,  "ai": 5,  "ensemble": 6,  "spread": 1.2, "windKmh": 20, "gustKmh": 30, "tempC": 27.2, "humidityPct": 85 },
+        { "h": 36, "nwp": 4,  "ai": 4,  "ensemble": 5,  "spread": 1.0, "windKmh": 18, "gustKmh": 26, "tempC": 27.6, "humidityPct": 82 },
+        { "h": 48, "nwp": 3,  "ai": 3,  "ensemble": 4,  "spread": 0.9, "windKmh": 16, "gustKmh": 24, "tempC": 28.1, "humidityPct": 80 },
+        { "h": 60, "nwp": 2,  "ai": 3,  "ensemble": 3,  "spread": 0.8, "windKmh": 14, "gustKmh": 22, "tempC": 28.4, "humidityPct": 78 },
+        { "h": 72, "nwp": 2,  "ai": 2,  "ensemble": 3,  "spread": 0.7, "windKmh": 12, "gustKmh": 20, "tempC": 28.7, "humidityPct": 77 }
+      ]
+    }
+  }
+}

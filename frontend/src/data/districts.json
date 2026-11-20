@@ -1,0 +1,281 @@
+{
+  "_meta": {
+    "dataset": "FOREXA Kerala 14-District GeoJSON Polygons & Centroid Coordinates",
+    "crs": "EPSG:4326 (WGS84)",
+    "bounds": {
+      "southWest": [8.15, 74.75],
+      "northEast": [12.85, 77.45]
+    }
+  },
+  "districts": [
+    {
+      "id": "wayanad",
+      "name": "Wayanad",
+      "code": "KL-WYD",
+      "terrain": "Highland Western Ghats Escarpment",
+      "elevationM": 980,
+      "isCoastal": false,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Banasura Sagar Dam & Kabini Basin",
+      "centroid": [11.685, 76.132],
+      "polygon": [
+        [11.92, 75.95],
+        [11.95, 76.22],
+        [11.82, 76.42],
+        [11.58, 76.38],
+        [11.48, 76.12],
+        [11.55, 75.94],
+        [11.75, 75.90]
+      ]
+    },
+    {
+      "id": "idukki",
+      "name": "Idukki",
+      "code": "KL-IDK",
+      "terrain": "Steep Mountainous Terrain & Reservoir Catchments",
+      "elevationM": 1250,
+      "isCoastal": false,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Idukki Arch Dam & Mullaperiyar Reservoir",
+      "centroid": [9.85, 77.02],
+      "polygon": [
+        [10.22, 76.78],
+        [10.25, 77.25],
+        [9.95, 77.32],
+        [9.52, 77.22],
+        [9.48, 76.92],
+        [9.72, 76.75],
+        [10.02, 76.72]
+      ]
+    },
+    {
+      "id": "kozhikode",
+      "name": "Kozhikode",
+      "code": "KL-KZK",
+      "terrain": "Malabar Coastal Plain & Eastern Foothills",
+      "elevationM": 85,
+      "isCoastal": true,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Kakkayam Dam & Chaliyar / Korapuzha Estuary",
+      "centroid": [11.38, 75.82],
+      "polygon": [
+        [11.75, 75.54],
+        [11.75, 75.90],
+        [11.55, 75.94],
+        [11.48, 76.12],
+        [11.22, 76.04],
+        [11.16, 75.78],
+        [11.42, 75.64]
+      ]
+    },
+    {
+      "id": "malappuram",
+      "name": "Malappuram",
+      "code": "KL-MLP",
+      "terrain": "Midland Laterite Valleys & Nilambur Ghats",
+      "elevationM": 140,
+      "isCoastal": true,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Chaliyar & Bharathapuzha Floodplain",
+      "centroid": [11.08, 76.12],
+      "polygon": [
+        [11.16, 75.78],
+        [11.22, 76.04],
+        [11.48, 76.12],
+        [11.42, 76.45],
+        [11.02, 76.42],
+        [10.76, 75.92],
+        [10.95, 75.85]
+      ]
+    },
+    {
+      "id": "kannur",
+      "name": "Kannur",
+      "code": "KL-KNR",
+      "terrain": "Northern Coastal Belt & Brahmagiri Slopes",
+      "elevationM": 65,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Pazhassi Barrage & Valapattanam River",
+      "centroid": [12.02, 75.56],
+      "polygon": [
+        [12.28, 75.15],
+        [12.30, 75.78],
+        [11.92, 75.95],
+        [11.75, 75.90],
+        [11.75, 75.54],
+        [11.98, 75.28]
+      ]
+    },
+    {
+      "id": "pathanamthitta",
+      "name": "Pathanamthitta",
+      "code": "KL-PTA",
+      "terrain": "Eastern Forested Ghats & Pamba Valley",
+      "elevationM": 320,
+      "isCoastal": false,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Kakki-Anathode Reservoir & Pamba River",
+      "centroid": [9.27, 76.85],
+      "polygon": [
+        [9.48, 76.62],
+        [9.48, 76.92],
+        [9.52, 77.22],
+        [9.15, 77.18],
+        [9.12, 76.68],
+        [9.30, 76.58]
+      ]
+    },
+    {
+      "id": "ernakulam",
+      "name": "Ernakulam",
+      "code": "KL-EKM",
+      "terrain": "Low-Lying Coastal Metro & Periyar Basin",
+      "elevationM": 22,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Periyar & Muvattupuzha River System (Bhoothathankettu)",
+      "centroid": [10.03, 76.42],
+      "polygon": [
+        [10.26, 76.16],
+        [10.22, 76.78],
+        [10.02, 76.72],
+        [9.78, 76.62],
+        [9.82, 76.24],
+        [10.05, 76.18]
+      ]
+    },
+    {
+      "id": "thrissur",
+      "name": "Thrissur",
+      "code": "KL-TSR",
+      "terrain": "Central Plains & Athirappilly Forest Range",
+      "elevationM": 55,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Peringalkuthu & Peechi Dam (Chalakudy River)",
+      "centroid": [10.48, 76.28],
+      "polygon": [
+        [10.76, 75.92],
+        [10.72, 76.52],
+        [10.35, 76.75],
+        [10.22, 76.78],
+        [10.26, 76.16],
+        [10.50, 76.04]
+      ]
+    },
+    {
+      "id": "kottayam",
+      "name": "Kottayam",
+      "code": "KL-KTM",
+      "terrain": "Meenachil Midlands & Eastern Foothills",
+      "elevationM": 95,
+      "isCoastal": false,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Meenachil & Manimala River Catchments",
+      "centroid": [9.62, 76.64],
+      "polygon": [
+        [9.82, 76.38],
+        [9.78, 76.62],
+        [10.02, 76.72],
+        [9.72, 76.75],
+        [9.48, 76.92],
+        [9.48, 76.62],
+        [9.55, 76.40]
+      ]
+    },
+    {
+      "id": "alappuzha",
+      "name": "Alappuzha",
+      "code": "KL-ALP",
+      "terrain": "Below-Sea-Level Kuttanad Backwaters & Coast",
+      "elevationM": 4,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Vembanad Lake & Thottappally Spillway",
+      "centroid": [9.45, 76.36],
+      "polygon": [
+        [9.82, 76.24],
+        [9.82, 76.38],
+        [9.55, 76.40],
+        [9.48, 76.62],
+        [9.30, 76.58],
+        [9.14, 76.42],
+        [9.42, 76.28]
+      ]
+    },
+    {
+      "id": "palakkad",
+      "name": "Palakkad",
+      "code": "KL-PKD",
+      "terrain": "Palakkad Gap & Silent Valley Escarpment",
+      "elevationM": 195,
+      "isCoastal": false,
+      "isGhatHighland": true,
+      "majorRiverOrDam": "Malampuzha Dam & Parambikulam Basin",
+      "centroid": [10.78, 76.65],
+      "polygon": [
+        [11.02, 76.42],
+        [11.15, 76.85],
+        [10.65, 76.95],
+        [10.35, 76.75],
+        [10.72, 76.52]
+      ]
+    },
+    {
+      "id": "kasaragod",
+      "name": "Kasaragod",
+      "code": "KL-KSD",
+      "terrain": "Northernmost Coastal & Laterite Plateau",
+      "elevationM": 48,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Chandragiri & Payaswini River Basin",
+      "centroid": [12.50, 75.15],
+      "polygon": [
+        [12.78, 74.88],
+        [12.75, 75.42],
+        [12.30, 75.55],
+        [12.28, 75.15],
+        [12.52, 74.96]
+      ]
+    },
+    {
+      "id": "kollam",
+      "name": "Kollam",
+      "code": "KL-KLM",
+      "terrain": "Ashtamudi Coast & Thenmala Ghat Corridor",
+      "elevationM": 72,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Thenmala (Parappar) Dam & Kallada River",
+      "centroid": [8.96, 76.78],
+      "polygon": [
+        [9.14, 76.42],
+        [9.12, 76.68],
+        [9.15, 77.18],
+        [8.78, 77.15],
+        [8.80, 76.58],
+        [8.98, 76.48]
+      ]
+    },
+    {
+      "id": "thiruvananthapuram",
+      "name": "Thiruvananthapuram",
+      "code": "KL-TVM",
+      "terrain": "Southern Coastal Ridge & Agasthyamala Hills",
+      "elevationM": 64,
+      "isCoastal": true,
+      "isGhatHighland": false,
+      "majorRiverOrDam": "Neyyar & Peppara Dam Catchments",
+      "centroid": [8.55, 76.95],
+      "polygon": [
+        [8.80, 76.58],
+        [8.78, 77.15],
+        [8.32, 77.25],
+        [8.28, 76.95],
+        [8.52, 76.72]
+      ]
+    }
+  ]
+}
