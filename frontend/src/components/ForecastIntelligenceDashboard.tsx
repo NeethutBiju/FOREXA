@@ -1467,7 +1467,7 @@ export const ForecastIntelligenceDashboard: React.FC<
                                 role: "authority",
                                 token: session?.idToken,
                               });
-                              const res = await dispatchFinalDistrictReportApi({
+                              await dispatchFinalDistrictReportApi({
                                 district: selectedForecast.district.name,
                                 lead_h: leadTime,
                                 issued_by:
@@ -1476,16 +1476,8 @@ export const ForecastIntelligenceDashboard: React.FC<
                                 role: "authority",
                                 token: session?.idToken,
                               });
-                              const smsText =
-                                res?.sms_body ||
-                                `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h, Wind ${selectedForecast.currentPoint.windMs ?? "—"}m/s) onset +${leadTime}h. Official report dispatched — activate district emergency protocol.`;
-                              // When online: sends BOTH full official report to that District Authority Dashboard AND SMS!
-                              // When offline: sends SMS via cellular SIM!
-                              triggerNativeOfflineSms(check.formatted, smsText);
                               showToast(
-                                browserOnline
-                                  ? `Final Official Report sent to ${selectedForecast.district.name} District Authority Dashboard & SMS triggered to ${check.formatted}!`
-                                  : `Offline Mode · Emergency SMS triggered to ${check.formatted} for ${selectedForecast.district.name}!`
+                                `Final Official Report & Alert sent to ${selectedForecast.district.name} District Authority Dashboard.`
                               );
                             } finally {
                               setDispatchingReport(false);

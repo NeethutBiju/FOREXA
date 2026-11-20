@@ -201,8 +201,7 @@ export const DistrictAuthorityDashboard: React.FC<
         ]
       ).map((d: string, i: number) => `${i + 1}. ${d}`),
       "",
-      "--- EVACUATION & ROUTE ADVISORY --------------------------------------",
-      `Primary Shelter : ${shelterMeta.shelter} (Capacity: ${shelterMeta.capacity})`,
+      "--- ROUTE ADVISORY ---------------------------------------------------",
       `Route to Avoid  : ${shelterMeta.roadAvoid} (${shelterMeta.roadReason})`,
       `Contact Mobile  : ${activeMobile}`,
       "======================================================================",
@@ -581,53 +580,23 @@ export const DistrictAuthorityDashboard: React.FC<
                 </div>
               </div>
 
-              {/* RIGHT 4 COLS: EVACUATION SHELTER & ROADS TO AVOID */}
-              <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm space-y-4">
+              {/* RIGHT 4 COLS: ROADS TO AVOID */}
+              <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-[#14532D]">
-                    Evacuation Shelter
+                    Roads to Avoid
                   </h3>
                   <span className="text-[11px] font-medium text-slate-400">
                     Live from FOREXA
                   </span>
                 </div>
-
-                <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-1.5">
-                  <div className="text-sm font-bold text-slate-900">
-                    {shelterMeta.shelter}
+                <div className="p-4 rounded-xl bg-red-50/60 border border-red-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-red-700">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{shelterMeta.roadAvoid}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                    <span>
-                      Capacity{" "}
-                      <strong className="text-slate-900">
-                        {shelterMeta.capacity}
-                      </strong>
-                    </span>
-                    <span>
-                      Availability{" "}
-                      <strong className="text-[#15803D]">Available</strong>
-                    </span>
-                    <span>
-                      Distance{" "}
-                      <strong className="text-slate-900">
-                        {shelterMeta.distanceKm}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <h3 className="text-sm font-bold text-slate-900 mb-2.5">
-                    Roads to Avoid
-                  </h3>
-                  <div className="p-4 rounded-xl bg-red-50/60 border border-red-200 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-red-700">
-                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{shelterMeta.roadAvoid}</span>
-                    </div>
-                    <div className="text-xs text-red-600/90 pl-5">
-                      {shelterMeta.roadReason}
-                    </div>
+                  <div className="text-xs text-red-600/90 pl-5">
+                    {shelterMeta.roadReason}
                   </div>
                 </div>
               </div>
