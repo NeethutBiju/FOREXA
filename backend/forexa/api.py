@@ -1899,6 +1899,22 @@ def serve_pwa_manifest():
     raise HTTPException(status_code=404, detail="manifest.json not found")
 
 
+@app.get("/icon-192.png", include_in_schema=False)
+def serve_icon_192():
+    f = _FRONTEND_DIST / "icon-192.png"
+    if f.exists():
+        return FileResponse(str(f), media_type="image/png")
+    raise HTTPException(status_code=404, detail="icon-192.png not found")
+
+
+@app.get("/icon-512.png", include_in_schema=False)
+def serve_icon_512():
+    f = _FRONTEND_DIST / "icon-512.png"
+    if f.exists():
+        return FileResponse(str(f), media_type="image/png")
+    raise HTTPException(status_code=404, detail="icon-512.png not found")
+
+
 @app.get("/{full_path:path}", include_in_schema=False)
 def serve_react_spa(full_path: str):
     index_file = _FRONTEND_DIST / "index.html"

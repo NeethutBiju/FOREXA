@@ -29,6 +29,7 @@ import {
   getStoredPrototypeMobile,
   validateMobileNumber,
 } from "../firebase";
+import { InstallAppButton } from "./InstallAppButton";
 
 interface AuthPortalProps {
   onAuthenticated: (session: UserSession) => void;
@@ -240,7 +241,8 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthenticated }) => {
           </span>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          <InstallAppButton />
           <button
             type="button"
             onClick={() =>

@@ -59,6 +59,7 @@ import { ModelInsightsTab } from "./ModelInsightsTab";
 import { VisualizationTab } from "./VisualizationTab";
 import { ControlRoomTab } from "./ControlRoomTab";
 import { TimeLoopTab } from "./TimeLoopTab";
+import { InstallAppButton } from "./InstallAppButton";
 import {
   getStoredPrototypeMobile,
   getUserInitials,
@@ -177,10 +178,30 @@ export const ForecastIntelligenceDashboard: React.FC<
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [pulseFlash, setPulseFlash] = useState<boolean>(false);
 
-  // Live Backend Data State
-  const [rawLatestResponse, setRawLatestResponse] = useState<any>(
-    () => INITIAL_2025_TRAINED_SNAPSHOT.latest
+  // Live Backend Data State (persisted to localStorage for instant offline viewing)
+  const [rawLatestResponse, setRawLatestResponse] = useState<any>(() => {
+    try {
+      const cached = localStorage.getItem("forexa_offline_latest_forecast");
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // ignore
+    }
+    return INITIAL_2025_TRAINED_SNAPSHOT.latest;
+  });
+  const [browserOnline, setBrowserOnline] = useState<boolean>(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
   );
+
+  useEffect(() => {
+    const onOnline = () => setBrowserOnline(true);
+    const onOffline = () => setBrowserOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
   const [districtTimelinesMap, setDistrictTimelinesMap] = useState<
     Record<string, any[]>
   >(() => INITIAL_2025_TRAINED_SNAPSHOT.timelines || {});
@@ -307,6 +328,14 @@ export const ForecastIntelligenceDashboard: React.FC<
       .then((data) => {
         if (cancelled) return;
         setRawLatestResponse(data);
+        try {
+          localStorage.setItem(
+            "forexa_offline_latest_forecast",
+            JSON.stringify(data)
+          );
+        } catch {
+          // ignore storage quota
+        }
         setLastBlendTime(data.forecast_initialization_time || "2025 Cycle");
         if (data.operational_guidance) {
           setGuidanceLog(
@@ -739,8 +768,9 @@ export const ForecastIntelligenceDashboard: React.FC<
             )}
           </nav>
 
-          {/* RIGHT: Live Stream Switch (Technical Only) + Lead Time + Initials Avatar */}
+          {/* RIGHT: Install App + Live Stream Switch (Technical Only) + Lead Time + Initials Avatar */}
           <div className="flex flex-wrap items-center gap-3">
+            <InstallAppButton />
             {isTechnicalRole && (
               <button
                 type="button"
@@ -921,6 +951,33 @@ export const ForecastIntelligenceDashboard: React.FC<
        * SPACIOUS MAIN CONTENT CONTAINER
        * ==================================================================== */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-8 space-y-8">
+        {!browserOnline && (
+          <div className="rounded-2xl bg-red-50 border border-red-300 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-red-800 font-semibold">
+            <span>
+              Offline Mode — Displaying cached Kerala forecast data. Cellular
+              SIM SMS dispatch remains available.
+            </span>
+            {!isTechnicalRole && (
+              <button
+                type="button"
+                onClick={() => {
+                  const smsBody = `[FOREXA ${selectedForecast.severity} ALERT] ${selectedForecast.district.name.toUpperCase()}: ${selectedForecast.eventType} (${selectedForecast.rain6hMm ?? "—"}mm/6h, Wind ${selectedForecast.currentPoint.windMs ?? "—"}m/s) onset +${leadTime}h. Activate district emergency protocol.`;
+                  const res = triggerNativeOfflineSms(prototypeMobile, smsBody);
+                  showToast(
+                    res.launched
+                      ? `Opening Offline SIM SMS to ${res.target}`
+                      : res.error ||
+                          "Enter a valid 10-digit receiver mobile number first."
+                  );
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition"
+              >
+                Send Offline SIM SMS →
+              </button>
+            )}
+          </div>
+        )}
+
         {isTechnicalRole && liveStreamEnabled && (
           <div className="rounded-2xl bg-[#ECFDF5] border border-emerald-300 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-[#14532D]">
             <div className="flex items-center gap-2.5">
@@ -1470,6 +1527,11 @@ export const ForecastIntelligenceDashboard: React.FC<
                           <Phone className="w-3.5 h-3.5" />
                           <span>Send Offline SIM SMS</span>
                         </button>
+                        <p className="text-[11px] text-slate-500 text-center leading-snug pt-0.5">
+                          Open this link on your mobile device and install the
+                          FOREXA app to dispatch offline cellular SMS alerts
+                          directly.
+                        </p>
                       </div>
                     </div>
                   )}

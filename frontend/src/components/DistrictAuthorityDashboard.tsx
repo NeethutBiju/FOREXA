@@ -19,7 +19,9 @@ import {
   getUserInitials,
   logoutUser,
   sendSystemAlertNotification,
+  triggerNativeOfflineSms,
 } from "../firebase";
+import { InstallAppButton } from "./InstallAppButton";
 import {
   acknowledgeDistrictAlertApi,
   fetchDistrictDispatchStateApi,
@@ -259,6 +261,7 @@ export const DistrictAuthorityDashboard: React.FC<
           </div>
 
           <div className="flex items-center gap-3">
+            <InstallAppButton />
             <button
               type="button"
               onClick={async () => {
@@ -314,8 +317,8 @@ export const DistrictAuthorityDashboard: React.FC<
           </div>
         </div>
 
-        {/* Minimal Status Bar: ONLY "Kerala · Online" or "Kerala · Offline" */}
-        <div className="w-full px-6 py-2 bg-white border-t border-slate-100 flex items-center text-xs">
+        {/* Minimal Status Bar: ONLY "Kerala · Online" or "Kerala · Offline" + Offline SIM SMS Trigger */}
+        <div className="w-full px-6 py-2 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
             <span
               className={`w-2 h-2 rounded-full ${
@@ -324,6 +327,25 @@ export const DistrictAuthorityDashboard: React.FC<
             />
             <span>{browserOnline ? "Kerala · Online" : "Kerala · Offline"}</span>
           </span>
+
+          {!browserOnline && (
+            <button
+              type="button"
+              onClick={() => {
+                const bf = alert?.blended_forecast || {};
+                const smsText = `[FOREXA ${alert?.severity || "HIGH"} ALERT] ${assignedDistrict.toUpperCase()}: ${alert?.event_type || "Weather Alert"} (${bf.precip_6h_mm ?? "—"}mm/6h, Wind ${bf.wind_ms ?? "—"}m/s). Offline cached alert — emergency protocol active.`;
+                const res = triggerNativeOfflineSms(activeMobile, smsText);
+                showToast(
+                  res.launched
+                    ? `Opening Offline SIM SMS to ${res.target}`
+                    : res.error || "No valid registered mobile number found."
+                );
+              }}
+              className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition"
+            >
+              Send Offline SIM SMS →
+            </button>
+          )}
         </div>
       </header>
 

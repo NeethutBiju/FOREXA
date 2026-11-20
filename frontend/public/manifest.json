@@ -1,10 +1,26 @@
 {
-  "name": "FOREXA — Weather Early Warning & Forecast Intelligence",
+  "id": "/",
+  "name": "FOREXA — Adaptive & Explainable Forecast System",
   "short_name": "FOREXA",
   "description": "Hybrid AI-NWP weather forecasting, district early warning, and offline-resilient emergency alert platform for Kerala.",
-  "start_url": "/login",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#F4F9F6",
   "theme_color": "#14532D",
-  "icons": []
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
