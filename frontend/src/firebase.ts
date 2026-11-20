@@ -22,13 +22,24 @@ import {
 } from "firebase/firestore";
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyBTPlg-fAjWObi4Qv9DRZXnu1W3MrdnMug",
-  authDomain: "forexa-e5dc7.firebaseapp.com",
-  projectId: "forexa-e5dc7",
-  storageBucket: "forexa-e5dc7.firebasestorage.app",
-  messagingSenderId: "114318600336",
-  appId: "1:114318600336:web:309a793d7d39d671ed5015",
-  measurementId: "G-LXDM92KRZ6",
+  apiKey:
+    import.meta.env.VITE_FIREBASE_API_KEY ||
+    "AIzaSyBTPlg-fAjWObi4Qv9DRZXnu1W3MrdnMug",
+  authDomain:
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ||
+    "forexa-e5dc7.firebaseapp.com",
+  projectId:
+    import.meta.env.VITE_FIREBASE_PROJECT_ID || "forexa-e5dc7",
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ||
+    "forexa-e5dc7.firebasestorage.app",
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "114318600336",
+  appId:
+    import.meta.env.VITE_FIREBASE_APP_ID ||
+    "1:114318600336:web:309a793d7d39d671ed5015",
+  measurementId:
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-LXDM92KRZ6",
 };
 
 const app = initializeApp(firebaseConfig);
