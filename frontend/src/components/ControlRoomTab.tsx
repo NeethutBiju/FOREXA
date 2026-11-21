@@ -531,11 +531,7 @@ export const ControlRoomTab: React.FC<ControlRoomTabProps> = ({
               </div>
               <div>
                 Status:{" "}
-                <strong>{failoverDiagResult.before_failure?.status}</strong> ·
-                Confidence:{" "}
-                <strong>
-                  {failoverDiagResult.before_failure?.confidence_level}
-                </strong>
+                <strong>{failoverDiagResult.before_failure?.status}</strong>
               </div>
               <div className="mt-1">
                 Weights: NWP{" "}

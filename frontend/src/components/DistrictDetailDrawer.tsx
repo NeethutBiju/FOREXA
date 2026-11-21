@@ -299,35 +299,6 @@ const SingleDistrictColumn: React.FC<{
         </div>
       )}
 
-      {/* 6. Confidence Meter */}
-      <div className="p-5 rounded-2xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-[#14532D]">
-            Forecast Confidence
-          </span>
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ECFDF5] text-[#14532D]">
-            {forecast.confidence} Confidence
-          </span>
-        </div>
-        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden mb-2">
-          <div
-            className="h-full bg-[#14532D] rounded-full transition-all"
-            style={{
-              width:
-                forecast.confidenceScore !== null
-                  ? `${Math.round(forecast.confidenceScore * 100)}%`
-                  : "75%",
-            }}
-          />
-        </div>
-        <p className="text-xs text-slate-600 leading-relaxed">
-          {String(forecast.confidenceReason || "").replace(
-            /^\[[^\]]*\]\s*confidence:/i,
-            `${forecast.confidence} confidence:`
-          )}
-        </p>
-      </div>
-
       {/* 7. Historical Analog Preview */}
       {bestAnalog && (
         <div className="p-5 rounded-2xl border border-slate-200 bg-white">
