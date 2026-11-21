@@ -321,7 +321,10 @@ const SingleDistrictColumn: React.FC<{
           />
         </div>
         <p className="text-xs text-slate-600 leading-relaxed">
-          {forecast.confidenceReason}
+          {String(forecast.confidenceReason || "").replace(
+            /^\[[^\]]*\]\s*confidence:/i,
+            `${forecast.confidence} confidence:`
+          )}
         </p>
       </div>
 

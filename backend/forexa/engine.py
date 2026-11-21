@@ -682,6 +682,7 @@ def confidence(p: pd.DataFrame, refs: dict) -> pd.DataFrame:
     cat = np.select([score >= 0.60, score >= 0.40], ["HIGH", "MEDIUM"], default="LOW")
     cat = np.where(p["n_sources"] <= 1, "LOW", cat)
 
+    cat_series = pd.Series(cat, index=p.index).astype(str)
     high_dis = dis > 0.75
     high_spr = spr > 0.75
     expl = np.where(
@@ -695,11 +696,11 @@ def confidence(p: pd.DataFrame, refs: dict) -> pd.DataFrame:
                 "HIGH confidence: All active models show low divergence and low ensemble spread for this district and lead time (indicates model agreement, not guaranteed accuracy).",
                 np.where(
                     high_dis & high_spr,
-                    f"{cat} confidence: Elevated inter-model disagreement and wide ensemble rainfall spread indicate heightened atmospheric uncertainty.",
+                    cat_series + " confidence: Elevated inter-model disagreement and wide ensemble rainfall spread indicate heightened atmospheric uncertainty.",
                     np.where(
                         high_dis,
-                        f"{cat} confidence: Noticeable divergence among NWP, Ensemble, and AI predictions for this district.",
-                        f"{cat} confidence: Moderate historical error or ensemble spread at this forecast horizon.",
+                        cat_series + " confidence: Noticeable divergence among NWP, Ensemble, and AI predictions for this district.",
+                        cat_series + " confidence: Moderate historical error or ensemble spread at this forecast horizon.",
                     ),
                 ),
             ),
